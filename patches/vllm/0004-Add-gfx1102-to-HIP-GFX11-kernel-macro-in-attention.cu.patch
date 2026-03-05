@@ -1,0 +1,28 @@
+From 920615c0a863505df4f342fc6037245c3a5e34d8 Mon Sep 17 00:00:00 2001
+From: Neil Schemenauer <nas@arctrix.com>
+Date: Thu, 5 Mar 2026 23:25:48 -0800
+Subject: [PATCH] Add gfx1102 to __HIP__GFX11__ kernel macro in attention.cu
+
+RX 7600 (gfx1102) is an RDNA3 card supported by PyTorch ROCm but was
+missing from the __HIP__GFX11__ preprocessor guard in attention.cu.
+Without this, the attention kernel compiles no device code for gfx1102,
+causing hipErrorInvalidDeviceFunction at runtime.
+---
+ csrc/rocm/attention.cu | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/csrc/rocm/attention.cu b/csrc/rocm/attention.cu
+index a339c5641..09f9d4715 100644
+--- a/csrc/rocm/attention.cu
++++ b/csrc/rocm/attention.cu
+@@ -41,6 +41,7 @@ using __hip_fp8_e5m2 = __hip_fp8_e5m2_fnuz;
+ #endif
+ 
+ #if defined(__HIPCC__) && (defined(__gfx1100__) || defined(__gfx1101__) || \
++                           defined(__gfx1102__) || \
+                            defined(__gfx1150__) || defined(__gfx1151__))
+   #define __HIP__GFX11__
+ #endif
+-- 
+2.47.3
+

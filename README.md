@@ -3,7 +3,7 @@
 *Running vLLM on the free-threaded version of Python is an EXPERIMENTAL
 configuration and is not officially supported.  You may encounter bugs or
 instability.  Also, this build does not support all of the models and options
-that the offical vLLM package supports.  Use with caution.*
+that the official vLLM package supports.  Use with caution.*
 
 ## Introduction
 
@@ -85,9 +85,7 @@ Prerequisites (host must provide):
 - uv (https://github.com/astral-sh/uv) on your PATH.
 - Optional but recommended: ccache (the scripts enable/use a CCACHE_DIR).
 
-Substeps
-
-### Install OS packages (Debian/Ubuntu)
+#### Install OS packages (Debian/Ubuntu)
 
 ```bash
 sudo apt-get update
@@ -96,140 +94,129 @@ sudo apt-get install -y --no-install-recommends \
     protobuf-compiler ca-certificates
 ```
 
-### Install CUDA developer files
+#### Install CUDA developer files
 
 Install the CUDA toolkit / developer packages appropriate for your GPU and
 driver. Follow NVIDIA's installer instructions for your distribution and make
 sure CUDA_HOME or CUDA_PATH points to the CUDA install (for example
 /usr/local/cuda).
 
-### Install Rust
+#### Install Rust
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 export PATH="$HOME/.cargo/bin:$PATH"
 ```
 
-### Create a free-threaded uv venv
+#### Create a free-threaded uv venv, install packages
 
-Create a free-threaded Python 3.14t environment (./.venv).
-
-```bash
-uv venv --python=3.14t
-```
-
-### Install CUDA PyTorch wheels
-
-Install the CUDA-enabled PyTorch wheels inside the uv venv. Adjust the
---extra-index-url to match your CUDA version (Dockerfile.cuda uses cu128):
+Run uv to create the virtual environment and install packages. Pass "cuda",
+"rocm", or "cpu" to select the PyTorch index:
 
 ```bash
-UV_HTTP_TIMEOUT=90 uv pip install \
-    "torch>=2.10.0" "torchaudio>=2.10.0" "torchvision>=0.20.0" \
-    --extra-index-url https://download.pytorch.org/whl/cu128
+./setup-venv.sh cuda
 ```
 
-### Install other Python dependencies
+#### Clone required source repositories and apply patches
 
-This will install all the dependency packages listed in the pyproject.toml
-file.
+The build uses source checkouts for several packages. Clone the required repos
+and apply patches using the included helper.  This will clone sources under
+the `third_party` folder.  If a folder already exists, it is not cloned and
+it is assumed the sources are already ready to build.
 
 ```bash
-uv sync
+./clone-all.sh
 ```
 
-### Clone required source repositories and apply patches
+#### Build source packages
 
-The build uses source checkouts for several packages. Clone the required
-repos and apply patches using the included helper:
+The following helper will install harmony and then perform an editable install
+of vllm.
 
 ```bash
-uv run ./clone-repos.py --repo vllm --repo flash-attention --repo harmony \
-    --repo safetensors --repo tokenizers
+./install-all.sh
 ```
 
-Note: build_uv.py does not automatically run clone-repos.py - run the clone
-step before invoking the helper (you can add an automation flag later).
-
-### Build source packages (non-editable)
-
-```bash
-uv pip install third_party/safetensors/bindings/python --no-build-isolation --no-deps
-uv pip install third_party/tokenizers/bindings/python --no-build-isolation --no-deps
-uv pip install third_party/harmony --no-build-isolation --no-deps
-```
-
-### Build and install editable vllm (helper)
-
-A helper script build_uv.py mirrors the Dockerfile's editable vllm build and
+The script `build_uv.py` mirrors the Dockerfile's editable vllm build and
 reuses the same MAX_JOBS / NVCC_THREADS detection logic. It currently targets
-CUDA only. Run it from the repository root using uv so the venv is used:
+CUDA only.
 
-```bash
-# run with defaults
-uv run ./build_uv.py
 
-# override TORCH arch / parallelism
-uv run ./build_uv.py --arch=8.0 --max-jobs=8 --nvcc-threads=2
-```
+#### Quick test
 
-The helper will run the non-editable source builds (safetensors, tokenizers,
-harmony) and then perform an editable install of vllm.
-
-## Quick test
-
-Once the build completes, run a quick smoke test without manually activating
-the venv:
+When the build completes, run a quick smoke test:
 
 ```bash
 uv run python -c "import vllm; print(vllm.__version__)"
 ```
 
-## Running vLLM
+#### Running vLLM
 
 Run vLLM using uv:
 
 ```bash
-uv run ./run_simple.py
+./run_simple.sh
 ```
 
-For Docker runs, see run_docker.sh for an example invocation.
+For Docker runs, use the run_docker_*.sh scripts listed above.
 
 ## Build details
 
-If you are building the CUDA backend, review TORCH_CUDA_ARCH_LIST and the
-MAX_JOBS settings. Dockerfile.cuda shows the values used in the containerized
-build.
-
-Common TORCH_CUDA_ARCH_LIST values:
-
-- 7.5 - Turing (T4)
-- 8.0 - Ampere (A100)
-- 8.9 - Ada Lovelace (L4, L40, RTX 4090)
-- 9.0a - Hopper (H100, H200)
-
 The repository uses a mixture of pre-built wheels and source builds (via
-local git checkouts). See git-repos.txt and patches/ for the repositories and
+local git checkouts). See `clone-all.sh` and patches/ for the repositories and
 patches applied during the build.
 
-Compatibility notes
+
+### CUDA build
+
+If you are building the CUDA backend, review TORCH_CUDA_ARCH_LIST and the
+MAX_JOBS settings. Dockerfile.cuda shows the values used in the containerized
+build.  A summary of nVidia compute hardware follows.
+
+| CUDA Compute Capability | Architecture | Example GPUs | Notes |
+|---|---|---|---|
+| `7.5` | Turing | T4, RTX 2080 / 2080 Ti, RTX 2070 | Common inference GPU in older cloud deployments |
+| `8.0` | Ampere (Datacenter) | A100 | Major AI training GPU; tensor cores with TF32 |
+| `8.6` | Ampere (Consumer) | RTX 3090, RTX 3080, RTX 3070 | Widely used for local ML training |
+| `8.9` | Ada Lovelace | L4, L40, RTX 4090, RTX 4080 | Popular for modern inference workloads |
+| `9.0a` | Hopper | H100, H200 | Latest NVIDIA datacenter architecture with FP8 support |
+
+
+### ROCm build
+
+For the ROCm build, you will need to set PYTORCH_ROCM_ARCH to the correct
+device.  For Dockerfile.rocm, use `--build-arg PYTORCH_ROCM_ARCH=<arch>`.  A
+summary of recent hardware follows.
+
+| GPU Generation | GFX Targets | Example Hardware |
+|---|---|---|
+| RDNA4 | `gfx1200`, `gfx1201` | RX 9060/9070 series |
+| RDNA3 | `gfx1100`, `gfx1101`, `gfx1102` | RX 7900 XTX/XT, RX 7800 XT, RX 7700 XT, RX 7600 |
+| RDNA3 APU | `gfx1103`, `gfx1150`, `gfx1151`, `gfx1152` | Radeon 780M, 890M (Phoenix / Strix APUs) |
+| RDNA2 | `gfx1030–gfx1036` | RX 6900 XT, RX 6800 XT, RX 6700 XT, RX 6600 XT |
+| CDNA3 | `gfx942` | Instinct MI300X, MI300A |
+| CDNA2 | `gfx90a` | Instinct MI250X, MI250, MI210 |
+| CDNA1 | `gfx908` | Instinct MI100 |
+
+
+### Compatibility notes
 
 - Some vllm dependencies are not yet compatible with Python 3.14t (free-
-  threaded). See the "Build details" section and the repository issues for
-  up-to-date notes.
+  threaded).
 
 - The uv-based host build assumes CUDA developer files and a working toolchain
   are present on the host. The Dockerfile stages runtime CUDA libraries to
   produce a minimal runtime image; this staging is unnecessary when running
   directly on a machine with a functioning CUDA runtime.
 
-## Contributing / Next steps
+- build_uv.py currently targets CUDA only.
 
-build_uv.py currently targets CUDA only. We may extend it to accept --compute
-to support ROCm/CPU on the host.
 
-See the scripts in the repository for additional implementation details:
+### Scripts
+
 - build_docker.py - build Docker images (accepts --compute)
-- build_uv.py - helper to run uv-based editable build (CUDA)
+- build_uv.py - helper to run uv-based editable build of vLLM (CUDA)
 - clone-repos.py - clone git repositories and apply patches
-
+- setup-venv.sh - Create Python venv and install packages
+- clone-all.sh - clone all needed source repositories
+- install-all.sh - install packages from source repositories

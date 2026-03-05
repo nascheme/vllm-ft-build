@@ -27,7 +27,13 @@ EOF
 # folder for HF_HOME
 test -e cache || mkdir cache
 
+# You might need to use an environment variable like the following, depending
+# on your GPU hardware.
+#
+#    -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
+
 docker run \
+    -it \
     --rm \
     --device=/dev/kfd \
     --device=/dev/dri \

@@ -64,14 +64,17 @@ def main():
 
     image_tag = f"vllm-freethreaded-{compute}"
 
+    os.environ['BUILDX_EXPERIMENTAL'] = '1'
     cmd = [
         "docker",
+        "buildx", "debug", "--invoke", "/bin/bash",
         "build",
+        "--progress=plain",
         "--build-arg",
         f"MAX_JOBS={max_jobs}",
     ]
 
-    if compute in ("cuda", "rocm"):
+    if compute == "cuda":
         arch_list = os.environ.get("TORCH_CUDA_ARCH_LIST") or "7.5"
         cmd += [
             "--build-arg",
@@ -79,11 +82,19 @@ def main():
             "--build-arg",
             f"TORCH_CUDA_ARCH_LIST={arch_list}",
         ]
+    elif compute == "rocm":
+        arch = os.environ.get("TORCH_ROCM_ARCH") or "gfx1030"
+        cmd += [
+            "--build-arg",
+            f"PYTORCH_ROCM_ARCH={arch}",
+        ]
     elif compute == "cpu":
         # Pass through any VLLM_CPU_* env vars as build args
         for key, value in os.environ.items():
             if key.startswith("VLLM_CPU_"):
                 cmd += ["--build-arg", f"{key}={value}"]
+    else:
+        raise RuntimeError
 
     cmd += ["-t", image_tag, "-f", dockerfile, "."]
     try:

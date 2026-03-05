@@ -1,0 +1,28 @@
+From 76037f5943543f2489e76ff44f6d23af3cf703a6 Mon Sep 17 00:00:00 2001
+From: Neil Schemenauer <nas@arctrix.com>
+Date: Thu, 5 Mar 2026 23:28:06 -0800
+Subject: [PATCH] Add gfx1102 to HIP_SUPPORTED_ARCHS in CMakeLists.txt
+
+RX 7600 (gfx1102) is supported by PyTorch ROCm but was missing from
+vllm's HIP_SUPPORTED_ARCHS list, preventing kernel compilation for
+that architecture.
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f38122225..e1a19d25d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -37,7 +37,7 @@ install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY TRUE)" ALL_COMPONENTS)
+ set(PYTHON_SUPPORTED_VERSIONS "3.10" "3.11" "3.12" "3.13" "3.14")
+ 
+ # Supported AMD GPU architectures.
+-set(HIP_SUPPORTED_ARCHS "gfx906;gfx908;gfx90a;gfx942;gfx950;gfx1030;gfx1100;gfx1101;gfx1200;gfx1201;gfx1150;gfx1151")
++set(HIP_SUPPORTED_ARCHS "gfx906;gfx908;gfx90a;gfx942;gfx950;gfx1030;gfx1100;gfx1101;gfx1102;gfx1200;gfx1201;gfx1150;gfx1151")
+ 
+ # ROCm installation prefix. Default to /opt/rocm but allow override via
+ # -DROCM_PATH=/your/rocm/path when invoking cmake.
+-- 
+2.47.3
+
