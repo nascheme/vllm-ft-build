@@ -8,7 +8,7 @@ set -eu
 
 dev=$1
 
-case $dev)
+case $dev in
     cpu)
         url=https://download.pytorch.org/whl/cpu
         ;;
