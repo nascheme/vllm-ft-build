@@ -91,16 +91,7 @@ COPY patches/ patches/
 # Clone all required repos
 RUN python clone-repos.py \
         --repo vllm \
-        --repo flash-attention \
-        --repo harmony
-
-# Build harmony (openai-harmony) from source (non-editable)
-#ADD third_party/harmony third_party/harmony
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=cache,target=/root/.rustup \
-    --mount=type=cache,target=/root/.cargo \
-    uv pip install third_party/harmony \
-        --no-build-isolation --no-deps
+        --repo flash-attention
 
 # Pre-fetch triton kernels so the vllm cmake build doesn't re-download on
 # every rebuild.  TRITON_KERNELS_SRC_DIR tells cmake to use a local checkout.

@@ -111,15 +111,7 @@ COPY patches/ patches/
 
 # Clone required repos (no flash-attention or triton for CPU)
 RUN python clone-repos.py \
-        --repo vllm \
-        --repo harmony
-
-# Build harmony (openai-harmony) from source (non-editable)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=cache,target=/root/.rustup \
-    --mount=type=cache,target=/root/.cargo \
-    uv pip install third_party/harmony \
-        --no-build-isolation --no-deps
+        --repo vllm
 
 # Build vllm from source (editable — source tree needed at runtime)
 RUN --mount=type=cache,target=/root/.cache/uv \

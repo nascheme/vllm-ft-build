@@ -86,15 +86,7 @@ COPY patches/ patches/
 # Clone all required repos
 RUN python clone-repos.py \
         --repo vllm \
-        --repo flash-attention \
-        --repo harmony
-
-# Build harmony (openai-harmony) from source (non-editable)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=cache,target=/root/.rustup \
-    --mount=type=cache,target=/root/.cargo \
-    uv pip install third_party/harmony \
-        --no-build-isolation --no-deps
+        --repo flash-attention
 
 ARG TORCH_CUDA_ARCH_LIST="7.5"
 ARG MAX_JOBS="4"
