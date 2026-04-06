@@ -130,8 +130,7 @@ it is assumed the sources are already ready to build.
 
 #### Build source packages
 
-The following helper will install harmony and then perform an editable install
-of vllm.
+The following helper will perform an editable install of vllm.
 
 ```bash
 ./install-all.sh
