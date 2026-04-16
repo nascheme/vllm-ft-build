@@ -1,0 +1,60 @@
+# ------------------------------------------------------------------------------
+# Test-only — from third_party/vllm/requirements/test/cuda.in
+# (packages already listed above or in ./requirements/* are omitted)
+#
+# Note: test/cuda.in pins transformers==5.5.3 and tokenizers==0.22.2; the
+# runtime section above allows newer versions.  Pin these here if running
+# tests against that exact vllm commit.
+# ------------------------------------------------------------------------------
+pytest
+pytest-forked
+pytest-asyncio
+pytest-rerunfailures
+pytest-shard
+pytest-timeout
+pytest-cov
+#tensorizer==2.12.0
+albumentations
+av
+backoff
+blobfile
+httpx
+librosa
+vector_quantize_pytorch
+vocos
+peft>=0.18.1
+pqdm
+ray[cgraph,default]>=2.48.0
+resampy
+sentence-transformers>=5.2.0
+soundfile
+jiwer
+tblib
+timm>=1.0.17
+transformers_stream_generator
+matplotlib
+num2words
+open_clip_torch==2.32.0
+datamodel_code_generator
+lm-eval[api]>=0.4.11
+mteb[bm25s]>=2,<3
+schemathesis>=3.39.15
+bitsandbytes==0.49.2
+buildkite-test-collector==0.1.9
+genai_perf>=0.0.8
+tritonclient>=2.51.0
+grpcio==1.78.0
+grpcio-reflection==1.78.0
+#arctic-inference==0.1.1  # sdist only; Python 3.14 compat unverified
+runai-model-streamer[s3,gcs,azure]==0.15.7
+instanttensor>=0.1.5  # needs source build: C extension, no cp314 wheel yet
+decord==0.6.0; platform_machine == "x86_64"
+terratorch>=1.2.2
+imagehash
+segmentation-models-pytorch>0.4.0
+gpt-oss>=0.0.7; python_version > '3.11'
+perceptron
+kaldi-native-fbank>=1.18.7
+datasets>=3.3.0,<=3.6.0
+openpyxl
+plotly
