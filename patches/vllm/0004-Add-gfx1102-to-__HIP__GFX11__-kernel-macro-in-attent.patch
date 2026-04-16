@@ -1,7 +1,8 @@
-From 920615c0a863505df4f342fc6037245c3a5e34d8 Mon Sep 17 00:00:00 2001
+From a4ed30c5cc41c1457365f6a2abc7501464c4d0a4 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Thu, 5 Mar 2026 23:25:48 -0800
-Subject: [PATCH] Add gfx1102 to __HIP__GFX11__ kernel macro in attention.cu
+Subject: [PATCH 4/6] Add gfx1102 to __HIP__GFX11__ kernel macro in
+ attention.cu
 
 RX 7600 (gfx1102) is an RDNA3 card supported by PyTorch ROCm but was
 missing from the __HIP__GFX11__ preprocessor guard in attention.cu.

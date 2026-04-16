@@ -1,17 +1,17 @@
-From 2433351877bc0c2e9210d461314e67dd947194eb Mon Sep 17 00:00:00 2001
+From 09b089e4ce0c26eb55e559d5d65bac7c6da85933 Mon Sep 17 00:00:00 2001
 From: Amineh Dadsetan <amineh.dadsetan@gmail.com>
 Date: Sun, 22 Feb 2026 17:26:25 -0800
-Subject: [PATCH 3/3] Fix qwen2 model, missing 'tie_word_embeddings'
+Subject: [PATCH 3/6] Fix qwen2 model, missing 'tie_word_embeddings'
 
 ---
  vllm/model_executor/models/qwen2.py | 8 ++++++--
  1 file changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/vllm/model_executor/models/qwen2.py b/vllm/model_executor/models/qwen2.py
-index ccddc6e81..20b7498c2 100644
+index 27aa6175b..6a0745466 100644
 --- a/vllm/model_executor/models/qwen2.py
 +++ b/vllm/model_executor/models/qwen2.py
-@@ -545,7 +545,11 @@ class Qwen2ForCausalLM(nn.Module, SupportsLoRA, SupportsPP, SupportsEagle3):
+@@ -552,7 +552,11 @@ class Qwen2ForCausalLM(
          )
  
          if get_pp_group().is_last_rank:
@@ -24,7 +24,7 @@ index ccddc6e81..20b7498c2 100644
                  self.lm_head = self.model.embed_tokens
              else:
                  self.lm_head = ParallelLMHead(
-@@ -595,6 +599,6 @@ class Qwen2ForCausalLM(nn.Module, SupportsLoRA, SupportsPP, SupportsEagle3):
+@@ -595,6 +599,6 @@ class Qwen2ForCausalLM(
      def load_weights(self, weights: Iterable[tuple[str, torch.Tensor]]) -> set[str]:
          loader = AutoWeightsLoader(
              self,
