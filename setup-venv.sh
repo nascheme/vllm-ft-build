@@ -1,10 +1,26 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Create venv and install Python packages.
 #
-# Usage ./setup-venv.sh [ cpu | cuda | cuda-nightly | rocm ]
+# Usage ./setup-venv.sh [-p <py_version>] cpu | cuda | cuda-nightly | rocm
 
 set -eu
+
+py_version=3.14t
+
+args=$(getopt -o p: -- "$@")
+eval set -- "$args"
+while true; do
+    case $1 in
+        -p) py_version=$2; shift 2 ;;
+        --) shift; break ;;
+    esac
+done
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 [-p <py_version>] cpu | cuda | cuda-nightly | rocm"
+    exit 1
+fi
 
 dev=$1
 pre=""
@@ -30,6 +46,6 @@ case $dev in
         exit 1
 esac
 
-uv venv --python=3.14t
+uv venv --python="$py_version"
 uv pip install $pre -r "$torch_req" --extra-index-url "$url"
 uv pip install -r requirements/common.txt

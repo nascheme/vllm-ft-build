@@ -7,7 +7,13 @@ if ! test -d; then
 fi
 
 export HF_HOME=`pwd`/cache
-export PYTHON_GIL=0
+
+case $(uv run python -c 'import sys; print(sys.flags.gil)') in
+    None)
+        # the GIL-enabled build gives an error if this is set
+        export PYTHON_GIL=0
+        ;;
+esac
 
 cd test
 uv run ./simple_generate.py
