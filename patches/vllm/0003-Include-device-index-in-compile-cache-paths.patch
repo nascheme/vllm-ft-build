@@ -1,7 +1,7 @@
-From ac518f1e93d141d14335fb5c6efb2a80e52d465b Mon Sep 17 00:00:00 2001
+From 6130d7a7271b89ec210e1003dcfbf337228f8fab Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Mon, 6 Apr 2026 22:22:26 +0000
-Subject: [PATCH 6/6] Include device index in compile cache paths
+Subject: [PATCH 3/3] Include device index in compile cache paths
 
 The inductor and AOT compile cache paths use rank and data-parallel
 index but not the CUDA device index.  When multiple engines run on
@@ -24,10 +24,10 @@ Assisted-by: Claude
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/vllm/compilation/backends.py b/vllm/compilation/backends.py
-index c3900ffc6..8c5206228 100644
+index 569b0ac08..c8144d7a1 100644
 --- a/vllm/compilation/backends.py
 +++ b/vllm/compilation/backends.py
-@@ -1057,7 +1057,9 @@ class VllmBackend:
+@@ -1049,7 +1049,9 @@ class VllmBackend:
          self.compilation_config.cache_dir = cache_dir
          rank = vllm_config.parallel_config.rank
          dp_rank = vllm_config.parallel_config.data_parallel_index
@@ -39,7 +39,7 @@ index c3900ffc6..8c5206228 100644
          self.compilation_config.local_cache_dir = local_cache_dir
  
 diff --git a/vllm/compilation/decorators.py b/vllm/compilation/decorators.py
-index 79daf00de..d88ce02ff 100644
+index 90b5c0c44..f20a7b52b 100644
 --- a/vllm/compilation/decorators.py
 +++ b/vllm/compilation/decorators.py
 @@ -519,7 +519,9 @@ def _support_torch_compile(

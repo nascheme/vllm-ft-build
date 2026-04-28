@@ -1,7 +1,7 @@
-From 09b089e4ce0c26eb55e559d5d65bac7c6da85933 Mon Sep 17 00:00:00 2001
+From 782ade4af8c7b3b125018c54a4d5f1d132f9c4da Mon Sep 17 00:00:00 2001
 From: Amineh Dadsetan <amineh.dadsetan@gmail.com>
 Date: Sun, 22 Feb 2026 17:26:25 -0800
-Subject: [PATCH 3/6] Fix qwen2 model, missing 'tie_word_embeddings'
+Subject: [PATCH 2/3] Fix qwen2 model, missing 'tie_word_embeddings'
 
 ---
  vllm/model_executor/models/qwen2.py | 8 ++++++--
