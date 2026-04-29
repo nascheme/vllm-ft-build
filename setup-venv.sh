@@ -17,12 +17,7 @@ while true; do
     esac
 done
 
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 [-p <py_version>] cpu | cuda | cuda-nightly | rocm"
-    exit 1
-fi
-
-dev=$1
+dev="${1:-cuda}"
 pre=""
 torch_req=requirements/torch.txt
 
