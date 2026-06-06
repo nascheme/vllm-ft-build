@@ -1,9 +1,11 @@
 # ------------------------------------------------------------------------------
 # Runtime — CUDA-specific, from third_party/vllm/requirements/cuda.txt
 # ------------------------------------------------------------------------------
-#flashinfer-python==0.6.7
-#flashinfer-cubin==0.6.7
+#flashinfer-python==0.6.11.post2
+#flashinfer-cubin==0.6.11.post2
 nvidia-cudnn-frontend>=1.13.0,<1.19.0
 fastsafetensors>=0.2.2  # needs source build: Rust extension, no cp314 wheel yet
-nvidia-cutlass-dsl>=4.4.2
+nvidia-cutlass-dsl==4.5.2  # upstream pins [cu13]; plain/[cu12] for CUDA-12
 quack-kernels>=0.3.3
+tokenspeed-mla==0.1.2  # new: faster MLA spec decode
+humming-kernels==0.1.2  # new: quantization gemm; upstream pins [cu13], [cu12] for CUDA-12

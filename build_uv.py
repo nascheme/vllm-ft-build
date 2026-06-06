@@ -14,8 +14,9 @@ This script expects 'uv' to be on PATH and that you've already created and
 activated a uv venv (for example: uv venv /opt/venv --python cpython-3.14t
 and exported PATH to include /opt/venv/bin).
 
-It will build safetensors, tokenizers, harmony (non-editable) and then
-perform an editable install of vllm (the same command the Dockerfile runs).
+It performs an editable install of vllm from source (the same command the
+Dockerfile runs); all other dependencies are installed as PyPI wheels (or
+built from sdist by uv/pip) via requirements/* during setup-venv.sh.
 """
 
 from __future__ import annotations

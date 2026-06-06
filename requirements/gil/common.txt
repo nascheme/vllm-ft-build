@@ -5,13 +5,14 @@ requests>=2.26.0
 tqdm
 transformers>=4.56.0,!=5.0.*,!=5.1.*,!=5.2.*,!=5.3.*,!=5.4.*,!=5.5.0
 tokenizers>=0.21.1
+safetensors>=0.6.2  # MXFP4/MXFP6 dtype support
 protobuf>=5.29.6,!=6.30.*,!=6.31.*,!=6.32.*,!=6.33.0.*,!=6.33.1.*,!=6.33.2.*,!=6.33.3.*,!=6.33.4.*
 tiktoken>=0.6.0
 lm-format-enforcer==0.11.3
 lark==1.2.2
 typing_extensions>=4.10
 filelock>=3.16.1
-mistral_common[image,audio]>=1.11.0
+mistral_common[image,audio]>=1.11.2
 opencv-python-headless>=4.13.0
 six>=1.16.0; python_version > '3.11'
 compressed-tensors==0.15.0.1
