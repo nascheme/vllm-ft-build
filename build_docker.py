@@ -43,6 +43,13 @@ def main():
         default="cuda",
         help="Which vllm backend to build (default: cuda)",
     )
+    parser.add_argument(
+        "--triton",
+        action="store_true",
+        default=os.environ.get("BUILD_TRITON", "0") == "1",
+        help="Also build and install Triton from source (with the "
+        "free-threading patches). Default: $BUILD_TRITON or off.",
+    )
     args = parser.parse_args()
 
     compute = args.compute
@@ -95,6 +102,10 @@ def main():
                 cmd += ["--build-arg", f"{key}={value}"]
     else:
         raise RuntimeError
+
+    cmd += ["--build-arg", f"BUILD_TRITON={1 if args.triton else 0}"]
+    if args.triton:
+        print("Triton: building from source with free-threading patches")
 
     cmd += ["-t", image_tag, "-f", dockerfile, "."]
     try:

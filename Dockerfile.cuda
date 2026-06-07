@@ -36,7 +36,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         pkg-config \
         libssl-dev \
         protobuf-compiler \
-        ca-certificates
+        ca-certificates \
+        cmake \
+        ninja-build \
+        zlib1g-dev \
+        libzstd-dev \
+        libncurses-dev \
+        libxml2-dev
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.10.2 /uv /uvx /bin/
@@ -83,14 +89,32 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY clone-repos.py git-repos.txt ./
 COPY patches/ patches/
 
-# Clone all required repos
+# Triton is optional: enable with --build-arg BUILD_TRITON=1 (see build_docker.py
+# --triton). When enabled it is cloned at the pinned commit and the
+# free-threading patches in patches/triton/ are applied by clone-repos.py.
+ARG BUILD_TRITON=0
+
+# Clone all required repos (triton only when enabled)
 RUN python clone-repos.py \
         --repo vllm \
-        --repo flash-attention
+        --repo flash-attention \
+        $( [ "$BUILD_TRITON" = "1" ] && echo --repo triton )
 
 ARG TORCH_CUDA_ARCH_LIST="7.5"
 ARG MAX_JOBS="4"
 ARG NVCC_THREADS="4"
+
+# Optionally build Triton from source (editable — source tree needed at
+# runtime). Triton JITs at runtime so it needs no CUDA arch list; it downloads
+# a prebuilt LLVM during the build.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=cache,target=/root/.ccache \
+    if [ "$BUILD_TRITON" = "1" ]; then \
+        export CCACHE_DIR=/root/.ccache MAX_JOBS="${MAX_JOBS}" \
+               CC="ccache gcc" CXX="ccache g++" && \
+        uv pip install -r third_party/triton/python/requirements.txt && \
+        uv pip install -e third_party/triton -v --no-build-isolation --no-deps ; \
+    fi
 
 # Build vllm from source (editable — source tree needed at runtime)
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -130,7 +154,11 @@ RUN set -eux \
     # --- vllm source (editable install needs this at runtime) --- \
     && mkdir -p /staging/app/third_party \
     && mv /app/third_party/vllm /staging/app/third_party/vllm \
-    && rm -rf /staging/app/third_party/vllm/vllm/.deps
+    && rm -rf /staging/app/third_party/vllm/vllm/.deps \
+    # --- triton source (editable install; present only when BUILD_TRITON=1) --- \
+    && if [ -d /app/third_party/triton ]; then \
+         mv /app/third_party/triton /staging/app/third_party/triton; \
+       fi
 
 # ---------------------------------------------------------------------------
 # runtime — Minimal production image

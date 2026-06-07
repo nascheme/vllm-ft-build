@@ -46,6 +46,10 @@ Usage examples:
 ./build_docker.py --compute=cuda
 ./build_docker.py --compute=rocm
 ./build_docker.py --compute=cpu
+
+# also build Triton from source (with free-threading patches); see
+# "Optional: Triton from source" below
+./build_docker.py --compute=cuda --triton
 ```
 
 Notes:
@@ -128,6 +132,13 @@ it is assumed the sources are already ready to build.
 ./clone-all.sh
 ```
 
+To also clone Triton (see "Optional: Triton from source" below), pass
+`--triton` or set `BUILD_TRITON=1`:
+
+```bash
+./clone-all.sh --triton          # or: BUILD_TRITON=1 ./clone-all.sh
+```
+
 #### Build source packages
 
 The following helper will perform an editable install of vllm.
@@ -139,6 +150,40 @@ The following helper will perform an editable install of vllm.
 The script `build_uv.py` mirrors the Dockerfile's editable vllm build and
 reuses the same MAX_JOBS / NVCC_THREADS detection logic. It currently targets
 CUDA only.
+
+#### Optional: Triton from source
+
+By default this build does **not** include Triton: under free-threaded Python
+3.14t, PyTorch's wheel drops its `triton` dependency, so Triton-dependent vLLM
+paths (e.g. `torch.compile`, fused MoE) are unavailable. You can opt in to
+building Triton from source with the free-threading safety patches applied.
+
+Enable it with the `--triton` flag or `BUILD_TRITON=1` on both the clone and
+build steps (host), or `--triton` on `build_docker.py` (Docker):
+
+```bash
+# Host
+./clone-all.sh --triton
+./install-all.sh --triton
+# or, with the env var:
+BUILD_TRITON=1 ./clone-all.sh && BUILD_TRITON=1 ./install-all.sh
+
+# Docker
+./build_docker.py --compute=cuda --triton
+```
+
+Details:
+
+- Triton is pinned to upstream `main` at commit
+  `2104a207c0595da7d099dd320967afd0fc41f70d` (triton 3.7.0-dev) and built as an
+  editable install, like vllm.
+- `clone-repos.py` applies the patches in `patches/triton/` on top — the
+  "recommended" Tier 1-2 HIGH/MED free-threading fixes from the companion audit
+  in `triton-ft-safety-report` (the six overlapping `jit.py` fixes
+  are combined into a single patch).
+- The Triton build is **heavy**: it downloads a prebuilt LLVM and compiles the
+  Triton C++/MLIR layer, needing significant RAM and time on top of the vllm
+  build.
 
 
 #### Quick test
@@ -213,9 +258,9 @@ summary of recent hardware follows.
 
 ### Scripts
 
-- build_docker.py - build Docker images (accepts --compute)
-- build_uv.py - helper to run uv-based editable build of vLLM (CUDA)
+- build_docker.py - build Docker images (accepts --compute, --triton)
+- build_uv.py - helper to run uv-based editable build of vLLM (CUDA; --triton)
 - clone-repos.py - clone git repositories and apply patches
 - setup-venv.sh - Create Python venv and install packages
-- clone-all.sh - clone all needed source repositories
-- install-all.sh - install packages from source repositories
+- clone-all.sh - clone all needed source repositories (--triton to include Triton)
+- install-all.sh - install packages from source repositories (--triton / BUILD_TRITON=1)

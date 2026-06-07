@@ -80,6 +80,14 @@ def main():
         default=None,
         help="Override NVCC_THREADS detected from CPUs",
     )
+    parser.add_argument(
+        "--triton",
+        dest="triton",
+        action="store_true",
+        default=os.environ.get("BUILD_TRITON", "0") == "1",
+        help="Also build and install Triton from source (third_party/triton, "
+        "with the free-threading patches). Default: $BUILD_TRITON or off.",
+    )
 
     args = parser.parse_args()
 
@@ -139,6 +147,39 @@ def main():
         print("ccache not found on PATH; building without ccache")
         env["CC"] = env.get("CC", "gcc")
         env["CXX"] = env.get("CXX", "g++")
+
+    # Optional: build Triton from source first.  clone-repos.py has already
+    # applied the free-threading patches from patches/triton/.  Triton ignores
+    # TORCH_CUDA_ARCH_LIST (it JITs at runtime) and downloads a prebuilt LLVM
+    # during the build, so no extra env is needed beyond MAX_JOBS/ccache.
+    if args.triton:
+        triton_dir = repo_root / "third_party" / "triton"
+        if not triton_dir.is_dir():
+            print(
+                f"Error: {triton_dir} not found. Run "
+                "'BUILD_TRITON=1 ./clone-all.sh' (or ./clone-all.sh --triton) first."
+            )
+            sys.exit(1)
+        try:
+            # Triton's own build/runtime requirements (cmake, ninja, ...).
+            run(
+                [
+                    "uv", "pip", "install", "-r",
+                    str(triton_dir / "python" / "requirements.txt"),
+                ],
+                env=env,
+            )
+            # Editable so the compiled libtriton lives in the source tree.
+            run(
+                [
+                    "uv", "pip", "install", "-e", "third_party/triton", "-v",
+                    "--no-build-isolation", "--no-deps",
+                ],
+                env=env,
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"Triton build failed: {e}")
+            sys.exit(1)
 
     try:
         # Editable vllm build
