@@ -1,0 +1,40 @@
+From 92c293652f31896092106be6180b6444b5511f71 Mon Sep 17 00:00:00 2001
+From: Neil Schemenauer <nas@arctrix.com>
+Date: Sun, 7 Jun 2026 18:48:36 -0700
+Subject: [PATCH] Make mistral_common optional by deferring MistralToolCall
+ import
+
+Defer import of MistralToolCall so that we don't import mistral_common
+unless we actually need it.  This makes mistral_common an optional
+dependency and makes startup faster in the case you don't use it.
+
+Assisted-by: Claude
+---
+ vllm/tool_parsers/streaming.py | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/vllm/tool_parsers/streaming.py b/vllm/tool_parsers/streaming.py
+index 7f6638dcb..53b3f06bb 100644
+--- a/vllm/tool_parsers/streaming.py
++++ b/vllm/tool_parsers/streaming.py
+@@ -14,7 +14,6 @@ from vllm.entrypoints.openai.engine.protocol import (
+     DeltaMessage,
+     DeltaToolCall,
+ )
+-from vllm.tool_parsers.mistral_tool_parser import MistralToolCall
+ from vllm.tool_parsers.utils import partial_json_loads
+ from vllm.utils.mistral import is_mistral_tokenizer
+ 
+@@ -77,6 +76,9 @@ def extract_named_tool_call_streaming(
+         )
+     else:
+         if is_mistral_tokenizer(tokenizer):
++            # Import mistral_common only if we need it.
++            from vllm.tool_parsers.mistral_tool_parser import MistralToolCall
++
+             tool_call_id = MistralToolCall.generate_random_id()
+         else:
+             tool_call_id = make_tool_call_id(
+-- 
+2.47.3
+
