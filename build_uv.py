@@ -201,6 +201,26 @@ def main():
         print(f"tokenizers build failed: {e}")
         sys.exit(1)
 
+    # tiktoken has no 3.14t wheel, build from source
+    tiktoken_dir = repo_root / "third_party" / "tiktoken"
+    if not tiktoken_dir.is_dir():
+        print(
+            f"Error: {tiktoken_dir} not found. Run './clone-all.sh' first."
+        )
+        sys.exit(1)
+    try:
+        run(
+            [
+                "uv", "pip", "install",
+                "third_party/tiktoken", "-v",
+                "--no-build-isolation", "--no-deps",
+            ],
+            env=env,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"tiktoken build failed: {e}")
+        sys.exit(1)
+
     try:
         # Editable vllm build
         run(

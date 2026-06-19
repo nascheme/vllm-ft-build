@@ -123,6 +123,7 @@ ARG BUILD_TRITON=0
 RUN python clone-repos.py \
         --repo vllm \
         --repo tokenizers \
+        --repo tiktoken \
         $( [ "$BUILD_TRITON" = "1" ] && echo --repo triton )
 
 # Optionally build Triton from source (editable). Builds GPU-free; it downloads
@@ -142,6 +143,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=cache,target=/root/.rustup \
     --mount=type=cache,target=/root/.cargo \
     uv pip install third_party/tokenizers/bindings/python -v \
+        --no-build-isolation --no-deps
+
+# Build tiktoken from source.  PyPI ships no wheel installable under
+# free-threaded 3.14t.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=cache,target=/root/.rustup \
+    --mount=type=cache,target=/root/.cargo \
+    uv pip install third_party/tiktoken -v \
         --no-build-isolation --no-deps
 
 # Build vllm from source (editable — source tree needed at runtime)
