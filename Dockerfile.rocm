@@ -91,7 +91,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install /opt/rocm/share/amd_smi --no-deps
 
 # Copy clone infrastructure
-COPY clone-repos.py git-repos.txt ./
+COPY clone-repos.py git-repos.txt fixup-env.py ./
 COPY patches/ patches/
 
 # Triton (the installed package) is optional: enable with
@@ -103,6 +103,7 @@ ARG BUILD_TRITON=0
 RUN python clone-repos.py \
         --repo vllm \
         --repo flash-attention \
+        --repo tokenizers \
         $( [ "$BUILD_TRITON" = "1" ] && echo --repo triton )
 
 # Pre-fetch triton kernels so the vllm cmake build doesn't re-download on
@@ -125,6 +126,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         uv pip install -e third_party/triton -v --no-build-isolation --no-deps ; \
     fi
 
+# Build tokenizers from source.  PyPI ships no wheel installable under
+# free-threaded 3.14t.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=cache,target=/root/.rustup \
+    --mount=type=cache,target=/root/.cargo \
+    uv pip install third_party/tokenizers/bindings/python -v \
+        --no-build-isolation --no-deps
+
 # Build vllm from source (editable — source tree needed at runtime)
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=cache,target=/root/.rustup \
@@ -139,6 +148,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     CMAKE_HIP_COMPILER_LAUNCHER=ccache \
     uv pip install -e third_party/vllm -v \
         --no-build-isolation --no-deps
+
+# Apply post-install fixups to the built environment.
+RUN python fixup-env.py
 
 # staging — Assemble only the files needed at runtime
 RUN set -eux \

@@ -181,6 +181,26 @@ def main():
             print(f"Triton build failed: {e}")
             sys.exit(1)
 
+    # tokenizers has no 3.14t wheel, build from source
+    tokenizers_dir = repo_root / "third_party" / "tokenizers"
+    if not tokenizers_dir.is_dir():
+        print(
+            f"Error: {tokenizers_dir} not found. Run './clone-all.sh' first."
+        )
+        sys.exit(1)
+    try:
+        run(
+            [
+                "uv", "pip", "install",
+                "third_party/tokenizers/bindings/python", "-v",
+                "--no-build-isolation", "--no-deps",
+            ],
+            env=env,
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"tokenizers build failed: {e}")
+        sys.exit(1)
+
     try:
         # Editable vllm build
         run(
@@ -199,6 +219,9 @@ def main():
     except subprocess.CalledProcessError as e:
         print(f"Build failed: {e}")
         sys.exit(1)
+
+    # Apply post install fixups to the environment
+    run([sys.executable, str(repo_root / "fixup-env.py")], env=env)
 
     print("Build complete. Test with: ./run_simple.sh")
 

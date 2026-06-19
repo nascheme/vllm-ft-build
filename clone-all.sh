@@ -16,7 +16,7 @@ for arg in "$@"; do
     esac
 done
 
-set -- --repo vllm --repo flash-attention
+set -- --repo vllm --repo flash-attention --repo tokenizers
 [ "$triton" = "1" ] && set -- "$@" --repo triton
 
 uv run ./clone-repos.py "$@"
