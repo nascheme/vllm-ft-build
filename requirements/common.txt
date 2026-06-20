@@ -6,14 +6,20 @@ cachetools>=6.2.2,<7
 cbor2>=5.7.1,<6
 cloudpickle>=3.1.2,<4
 cmake
+compressed-tensors==0.15.0.1  # load compressed-tensors quantized checkpoints
+depyf==0.20.0  # torch.compile debugging/profiling (compilation config)
 diskcache>=5.6.3,<6
 einops>=0.8.1
 fastapi>=0.121.3,<0.122
 gguf>=0.17.0
 huggingface_hub>=0.16.4,<2  # runtime dep of tokenizers (built from source, installed --no-deps)
 ijson
+lark==1.2.2  # Lark grammar parsing for structured output
 llguidance>=1.7.0,<1.8.0
+lm-format-enforcer==0.11.3  # lm-format-enforcer structured-output backend
 maturin>=1.10.2
+mcp  # MCP tool server/client integration
+mistral_common>=1.11.2  # core only, no [image] (opencv has no FT support); pulls source-built tiktoken
 model-hosting-container-standards>=0.1.14,<1.0.0
 modelscope>=1.32.0,<2
 msgspec>=0.20.0
@@ -22,6 +28,9 @@ numba>=0.65.0
 numpy>=2.3.5,<3
 openai-harmony>=0.0.8
 openai>=2.8.1,<3
+opentelemetry-api>=1.27.0  # OTEL tracing (exporter-otlp omitted: pulls protobuf+grpcio, no FT support)
+opentelemetry-sdk>=1.27.0
+opentelemetry-semantic-conventions-ai>=0.4.1
 outlines_core>=0.2.14
 partial-json-parser>=0.2.1.1.post7,<0.3
 pillow>=12.0.0,<13
@@ -32,6 +41,7 @@ psutil>=7.1.3,<8
 py-cpuinfo>=9.0.0,<10
 pybase64>=1.4.2,<2
 pydantic>=2.12.0
+python-json-logger  # structured JSON logging config (logging_configuration.md)
 python-multipart>=0.0.20,<0.0.21
 pyyaml>=6.0.3,<7
 pyzmq>=27.1.0,<28
@@ -45,6 +55,7 @@ setproctitle>=1.3.6,<2
 setuptools-rust>=1.9.0  # build dep for vllm's optional Rust frontend (vllm-rs)
 setuptools-scm>=9.2.2
 setuptools>=80.9.0,<81
+six>=1.16.0  # compatibility shim (upstream requires latest for py>3.11)
 transformers==5.12.1  # vllm's runtime range is >=4.56. vllm CI tests against 5.5.3
 uvicorn>=0.38.0,<0.39
 uvloop>=0.22.1,<0.23
