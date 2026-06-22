@@ -1,14 +1,10 @@
-From 33d392a9374f06f6daa20af103efb9c23f885e1b Mon Sep 17 00:00:00 2001
+From 16adfd6456411518fc6e79b2f586faad6776c347 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 14 Apr 2026 10:57:23 -0700
-Subject: [PATCH 7/8] Lock AsyncCompileMode submit and finalize_compile
+Subject: [PATCH 10/13] Lock AsyncCompileMode submit and finalize_compile
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-
-X-Tier: 2
-X-Severity: MED
-X-Issue-Id: FT019
 
 `AsyncCompileMode` and `FutureKernel` memoize compile work by
 `cache_key`, but the bookkeeping is not thread-safe:
@@ -97,6 +93,3 @@ index d8868b5da..b4d3fee7a 100644
  
      def __enter__(self):
          if active_mode.get() is not None:
--- 
-2.47.3
-

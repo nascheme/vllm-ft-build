@@ -1,11 +1,7 @@
-From fc9c6a50bde160dc6e429957607ab57a7174e1f6 Mon Sep 17 00:00:00 2001
+From 7ada3ba6b1afa570ce851b0a452f254a1394898e Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Wed, 20 May 2026 15:28:35 -0700
-Subject: [PATCH 6/8] Serialize gsan symmetric_memory.rendezvous()
-
-X-Tier: 2
-X-Severity: MED
-X-Issue-Id: FT013
+Subject: [PATCH 09/13] Serialize gsan symmetric_memory.rendezvous()
 
 The rendezvous protocol does check-then-act on a module-level
 WeakValueDictionary `_RENDEZVOUS_CACHE`, runs a multi-step Unix-socket
@@ -13,9 +9,7 @@ FD-exchange, then writes to that cache; it also reads-decides-updates a
 shared peer set held by `_RUNTIME_BOOTSTRAP_CACHE`. Under free-threaded
 CPython two threads rendezvousing on the same tensor / process group
 can both miss the cache, both run the full protocol, both write to the
-cache (orphaning one handle, whose finalizer double-frees peer
-allocations), and both decide the same peers still need a runtime-state
-FD (resulting in duplicate `import_runtime_state_handle`).
+cache.
 
 Hold a module-level `threading.Lock` across the cache check, the
 protocol, and the trailing cache / peer-set update. The rendezvous
@@ -28,7 +22,7 @@ Assisted-by: claude-opus-4.7
  1 file changed, 40 insertions(+), 10 deletions(-)
 
 diff --git a/python/triton/experimental/gsan/symmetric_memory.py b/python/triton/experimental/gsan/symmetric_memory.py
-index aaf923ea0..17556a56d 100644
+index acb48cedd..711678e40 100644
 --- a/python/triton/experimental/gsan/symmetric_memory.py
 +++ b/python/triton/experimental/gsan/symmetric_memory.py
 @@ -10,6 +10,7 @@ import os
@@ -39,7 +33,7 @@ index aaf923ea0..17556a56d 100644
  import time
  import uuid
  import weakref
-@@ -279,6 +280,11 @@ def _connect(path: Path, timeout: float = 10) -> socket.socket:
+@@ -294,6 +295,11 @@ def _connect(path: Path, timeout: float = 10) -> socket.socket:
  _RENDEZVOUS_CACHE: weakref.WeakValueDictionary[_RendezvousCacheKey,
                                                 GSanSymmetricMemoryHandle] = weakref.WeakValueDictionary()
  _RUNTIME_BOOTSTRAP_CACHE: dict[_RuntimeBootstrapCacheKey, set[int]] = {}
@@ -51,7 +45,7 @@ index aaf923ea0..17556a56d 100644
  
  
  def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
-@@ -302,15 +308,43 @@ def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
+@@ -317,15 +323,43 @@ def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
      base_ptr = storage.data_ptr()
      storage_key = int(getattr(storage, "_cdata", base_ptr))
      cache_key = (base_ptr, storage_key, id(process_group))
@@ -100,8 +94,8 @@ index aaf923ea0..17556a56d 100644
              group=process_group,
              rank=rank,
              world_size=world_size,
-@@ -320,8 +354,6 @@ def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
-             peer_device_indices=(int(device_index), ),
+@@ -335,8 +369,6 @@ def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
+             peer_device_indices=(rank, ),
              cache_key=cache_key,
          )
 -        _RENDEZVOUS_CACHE[cache_key] = handle
@@ -109,7 +103,7 @@ index aaf923ea0..17556a56d 100644
  
      runtime_bootstrap_cache_key = (id(process_group), int(device_index))
      runtime_bootstrapped_peers = _RUNTIME_BOOTSTRAP_CACHE.setdefault(runtime_bootstrap_cache_key, set())
-@@ -465,7 +497,7 @@ def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
+@@ -475,7 +507,7 @@ def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
          if peers_needing_runtime_bootstrap:
              runtime_bootstrapped_peers.update(peers_needing_runtime_bootstrap)
  
@@ -118,12 +112,9 @@ index aaf923ea0..17556a56d 100644
          group=process_group,
          rank=rank,
          world_size=world_size,
-@@ -475,5 +507,3 @@ def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
+@@ -485,5 +517,3 @@ def rendezvous(tensor: torch.Tensor, group) -> GSanSymmetricMemoryHandle:
          peer_device_indices=peer_device_indices,
          cache_key=cache_key,
      )
 -    _RENDEZVOUS_CACHE[cache_key] = handle
 -    return handle
--- 
-2.47.3
-

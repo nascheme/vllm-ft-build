@@ -153,13 +153,10 @@ CUDA only.
 
 #### Optional: Triton from source
 
-By default this build does **not** include Triton: under free-threaded Python
-3.14t, PyTorch's wheel drops its `triton` dependency, so Triton-dependent vLLM
-paths (e.g. `torch.compile`, fused MoE) are unavailable. You can opt in to
-building Triton from source with the free-threading safety patches applied.
-
-Enable it with the `--triton` flag or `BUILD_TRITON=1` on both the clone and
-build steps (host), or `--triton` on `build_docker.py` (Docker):
+Enable building Triton from source with the `--triton` flag or `BUILD_TRITON=1`
+on both the clone and build steps (host), or `--triton` on `build_docker.py`
+(Docker).  When enabled, Triton source code is patched using the "blocker"
+patches from the `triton-ft-safety-report` repo.
 
 ```bash
 # Host
@@ -171,19 +168,6 @@ BUILD_TRITON=1 ./clone-all.sh && BUILD_TRITON=1 ./install-all.sh
 # Docker
 ./build_docker.py --compute=cuda --triton
 ```
-
-Details:
-
-- Triton is pinned to upstream `main` at commit
-  `2104a207c0595da7d099dd320967afd0fc41f70d` (triton 3.7.0-dev) and built as an
-  editable install, like vllm.
-- `clone-repos.py` applies the patches in `patches/triton/` on top — the
-  "recommended" Tier 1-2 HIGH/MED free-threading fixes from the companion audit
-  in `triton-ft-safety-report` (the six overlapping `jit.py` fixes
-  are combined into a single patch).
-- The Triton build is **heavy**: it downloads a prebuilt LLVM and compiles the
-  Triton C++/MLIR layer, needing significant RAM and time on top of the vllm
-  build.
 
 
 #### Quick test

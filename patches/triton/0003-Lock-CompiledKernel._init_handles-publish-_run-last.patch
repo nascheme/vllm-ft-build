@@ -1,11 +1,7 @@
-From e6f7841ae807fb14f46182e2752b285aea0a18f1 Mon Sep 17 00:00:00 2001
+From a8823b1a898364a782a60375eea7330e87883080 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 26 May 2026 09:42:39 -0700
-Subject: [PATCH 2/8] Lock CompiledKernel._init_handles, publish _run last
-
-X-Tier: 2
-X-Severity: HIGH
-X-Issue-Id: FT010
+Subject: [PATCH 03/13] Lock CompiledKernel._init_handles, publish _run last
 
 Re-structure _init_handles() to avoid data races.  On fast path (init
 already done) return early.  Otherwise, acquire init mutex and complete
@@ -131,6 +127,3 @@ index 16e988443..75cf9684a 100644
  
      @property
      def run(self):
--- 
-2.47.3
-

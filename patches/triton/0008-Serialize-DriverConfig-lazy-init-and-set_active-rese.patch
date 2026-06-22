@@ -1,12 +1,8 @@
-From a7a9236f5cec5a0ffdfaf700f50af9a6dfd81c58 Mon Sep 17 00:00:00 2001
+From 709527d7ff2d289ecffbc273d55b2cf9d9343312 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 14 Apr 2026 10:42:53 -0700
-Subject: [PATCH 3/8] Serialize DriverConfig lazy init and
+Subject: [PATCH 08/13] Serialize DriverConfig lazy init and
  set_active/reset_active
-
-X-Tier: 1
-X-Severity: MED
-X-Issue-Id: FT040
 
 Serialize the lazy init of DriverConfig._default and _active.  This
 avoids data races when multiple threads are used.
@@ -83,6 +79,3 @@ index 5801b42fd..d13146633 100644
  
  
  driver = DriverConfig()
--- 
-2.47.3
-

@@ -1,0 +1,38 @@
+From debe70875b8e912303d15c4175d7ecaf654d1a69 Mon Sep 17 00:00:00 2001
+From: Neil Schemenauer <nas@arctrix.com>
+Date: Tue, 14 Apr 2026 10:56:58 -0700
+Subject: [PATCH 07/13] Register JITFunction in the global registry last
+
+Fix data race in JITFunction.__init__: publish to registry only after
+initialization is complete.  This race also exists in the GIL enabled
+build but it is more likely to be triggered in free-threaded Python.
+
+Assisted-by: claude-opus-4.6
+---
+ python/triton/runtime/jit.py | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/python/triton/runtime/jit.py b/python/triton/runtime/jit.py
+index ff6d4d770..486749c46 100644
+--- a/python/triton/runtime/jit.py
++++ b/python/triton/runtime/jit.py
+@@ -805,8 +805,6 @@ class JITFunction(JITCallable, KernelInterface[T]):
+         self.do_not_specialize_on_alignment = do_not_specialize_on_alignment
+         self._repr = repr
+         self.launch_metadata = launch_metadata
+-        # Register for simple deserialization of JITFunction constants
+-        _triton_jit_function_registry[f"{self.module}:{self.fn.__qualname__}"] = self
+ 
+         self.params = []
+         for i, param in enumerate(self.signature.parameters.values()):
+@@ -832,6 +830,10 @@ class JITFunction(JITCallable, KernelInterface[T]):
+         # Hooks that will be called prior to executing "run"
+         self.pre_run_hooks = []
+ 
++        # Register for simple deserialization of JITFunction constants.
++        # Done last so other threads never see a partially-initialized instance.
++        _triton_jit_function_registry[f"{self.module}:{self.fn.__qualname__}"] = self
++
+     def __getstate__(self):
+         # JITFunction is pickled into torch.compile's (possibly cross-process)
+         # Inductor static-autotuner cache. _device_caches_lock is not picklable,

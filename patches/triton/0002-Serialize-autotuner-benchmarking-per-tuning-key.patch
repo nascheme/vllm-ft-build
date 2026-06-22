@@ -1,11 +1,7 @@
-From 753c23a3531ac8489103fd3c99b86d062f5a513e Mon Sep 17 00:00:00 2001
+From 20109bd67bffbd833c01283f062a26685c70db2c Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 14 Apr 2026 10:33:37 -0700
-Subject: [PATCH 1/8] Serialize autotuner benchmarking per tuning key
-
-X-Tier: 2
-X-Severity: HIGH
-X-Issue-Id: FT002
+Subject: [PATCH 02/13] Serialize autotuner benchmarking per tuning key
 
 The Autotuner.run() method can be entered by two or more threads. The
 state held by self.nargs, self.restore_copies, self.configs_timings,
@@ -240,6 +236,3 @@ index 61b383042..6d53f8c53 100644
          return ret
  
  
--- 
-2.47.3
-

@@ -1,12 +1,7 @@
-From 32bf5a7ad99fca47fe067dc170f1f73d2dc96ae9 Mon Sep 17 00:00:00 2001
+From 5cc6b11ede2103820f847192c6c855b49078072f Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 26 May 2026 10:10:27 -0700
-Subject: [PATCH 5/8] Lock dtype_ptr2str and dtype2str specialization caches
-
-X-Tier: 2
-X-Severity: HIGH
-X-Issue-Id: FT042
-X-Issue-Id: FT043
+Subject: [PATCH 05/13] Lock dtype_ptr2str and dtype2str specialization caches
 
 handle_tensor() and specialize_tensordesc() each mutate a
 process-global std::unordered_map (dtype_ptr2str and dtype2str
@@ -114,6 +109,3 @@ index 97d0e5392..d90ba09c1 100644
    }
  
    // handle alignment specialization of a tensor
--- 
-2.47.3
-

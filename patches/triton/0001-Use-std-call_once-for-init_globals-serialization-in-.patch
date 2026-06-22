@@ -1,11 +1,8 @@
-From 49f30a74dd89a2e49984d491ba9e3a3bd79a69ed Mon Sep 17 00:00:00 2001
+From 31d6d099de5de38b0f9a89dbd944ef31dbf51b49 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Sat, 30 May 2026 08:11:15 -0700
-Subject: [PATCH 4/8] Use std::call_once for init_globals() serialization in
+Subject: [PATCH 01/13] Use std::call_once for init_globals() serialization in
  specialize.cc
-
-X-Severity: HIGH
-X-Issue-Id: FT044
 
 Under free-threaded CPython, two threads can both observe the plain
 init_called guard as false and enter init_globals() concurrently. That
@@ -76,6 +73,3 @@ index c4bab9fb2..97d0e5392 100644
    }
  
    if (nargs != 5) {
--- 
-2.47.3
-

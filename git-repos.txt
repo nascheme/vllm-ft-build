@@ -8,9 +8,9 @@
 # matches what vllm would otherwise fetch.
 vllm-project vllm 0decac0d96c42b49572498019f0a0e3600f50398
 vllm-project flash-attention bce29425653ec0fbc579d329883030e832d15ada
-# triton: upstream main @ 2104a207c (2026-06-06, triton 3.7.0-dev)
-triton-lang triton 2104a207c0595da7d099dd320967afd0fc41f70d
-# tokenizers: v0.23.1 (commit 7f1623b)
+# triton: upstream main, 2026-06-17, triton 3.8.0-dev
+triton-lang triton 3a9e53347e785ee9aa636fd2c0c5c536b1d37a0d
+# tokenizers: v0.23.1
 huggingface tokenizers 7f1623b90b5adfb9bc327d4c3468d2f70bbce262
-# tiktoken: v0.13.0 (commit fa8b65d)
+# tiktoken: v0.13.0
 openai tiktoken fa8b65d062fb6a656ac3810c89efde4c8ab999e2
