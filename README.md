@@ -17,6 +17,44 @@ Choose the path that matches your goal:
 - I want a reproducible container image (recommended): see "Build - Docker"
 - I want to build and run on the host (no Docker): see "Build - Host (uv)"
 
+## Differences from stock vLLM
+
+This build targets free-threaded Python 3.14t. It builds a few packages from
+source instead of using PyPI wheels, and leaves out some optional dependencies
+that have no working free-threaded build yet.
+
+### Built from source
+
+Built from local git checkouts under `third_party/` instead of PyPI pre-built
+wheels (no compatible `cp314t` wheels exist):
+
+- `vllm` — editable install
+- `flash-attention` — patched for Python 3.14 (matches vLLM's own source build)
+- `tokenizers` — Rust/PyO3; PyPI ships only abi3 wheels
+- `tiktoken` — Rust/PyO3; same reason
+- `triton` — **optional** (`--triton` / `BUILD_TRITON=1`), with free-threading
+  safety patches; omitted by default
+
+(`safetensors` is built automatically from its PyPI sdist.)
+
+### Omitted optional packages
+
+All are optional; each affects only the listed feature.
+
+| Package | Why omitted | Impact |
+|---|---|---|
+| `protobuf` | no free-threading support | some tokenizer/gRPC paths (e.g. LlamaTokenizer) may fail or use a slower fallback |
+| `opencv-python-headless` | no free-threading support | video IO / video multimodal models unavailable |
+| `fastsafetensors` | re-enables the GIL on import | none on the default path; `--load-format fastsafetensors` (GPU Direct Storage) unavailable |
+| `mistral_common[image]` extra | pulls `opencv` | image extra only — core Mistral tokenizer/chat-template **is** installed |
+| `opentelemetry-exporter-otlp` | pulls `protobuf`+`grpcio` | OTLP trace export unavailable; OTEL core (`api`/`sdk`) **is** installed |
+| CUDA kernel packages¹ | FT status unverified | optional fast-path kernels off, native fallbacks on |
+| `fastapi[standard]` | partial install | installs `fastapi` plus the pieces actually used, not the full `[standard]` extra set |
+
+¹ `flashinfer-python`, `flashinfer-cubin`, `apache-tvm-ffi`, `tilelang`,
+`nvidia-cudnn-frontend`, `nvidia-cutlass-dsl`, `quack-kernels`,
+`tokenspeed-mla`, `humming-kernels`.
+
 ## Build
 
 This section covers the two supported build workflows: building a Docker image
