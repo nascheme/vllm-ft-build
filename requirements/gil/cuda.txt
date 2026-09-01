@@ -1,11 +1,19 @@
 # ------------------------------------------------------------------------------
-# Runtime — CUDA-specific, from third_party/vllm/requirements/cuda.txt
+# Runtime — CUDA-specific, from third_party/vllm/requirements/cuda.txt (v0.28.0)
 # ------------------------------------------------------------------------------
-#flashinfer-python==0.6.11.post2
-#flashinfer-cubin==0.6.11.post2
-nvidia-cudnn-frontend>=1.13.0,<1.19.0
-fastsafetensors>=0.2.2  # needs source build: Rust extension, no cp314 wheel yet
-nvidia-cutlass-dsl==4.5.2  # upstream pins [cu13]; plain/[cu12] for CUDA-12
-quack-kernels>=0.3.3
-tokenspeed-mla==0.1.2  # new: faster MLA spec decode
-humming-kernels==0.1.2  # new: quantization gemm; upstream pins [cu13], [cu12] for CUDA-12
+# The GIL-enabled reference set: what a stock upstream CUDA build installs.
+# Entries commented out are the ones the free-threaded build omits
+torchcodec>=0.14              # needs system FFmpeg 4-8 shared libs
+#PyNvVideoCodec==2.0.4        # wheel-only, no cp314t wheel and no sdist
+#flashinfer-python==0.6.16.post3
+#flashinfer-cubin==0.6.16.post3
+#apache-tvm-ffi==0.1.11       # only consumed by flashinfer/tilelang
+#tilelang==0.1.12             # abi3 wheel rejected by 3.14t; sdist build untested
+#nvidia-cudnn-frontend>=1.19.1  # only consumed by flashinfer
+nvtx==0.2.15
+#fastsafetensors>=0.3.3       # opt-in loader; not FT-safe as of 0.3.2, 0.3.3 unstressed
+#nvidia-cutlass-dsl[cu13]==4.6.2  # FA4/CuTe-DSL needs sm90+, unusable on sm_75
+#quack-kernels==0.6.4         # torch-c-dlpack-ext has no cp314t artifact
+#tokenspeed-mla==0.1.8        # tokenspeed-triton has no cp314t wheel or sdist
+#humming-kernels[cu13]==0.1.12  # no FT evidence; quantization gemm only
+numba==0.65.0

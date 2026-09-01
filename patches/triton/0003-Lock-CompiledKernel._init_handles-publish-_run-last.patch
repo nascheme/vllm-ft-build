@@ -1,7 +1,7 @@
-From a8823b1a898364a782a60375eea7330e87883080 Mon Sep 17 00:00:00 2001
+From 4a6c35ec94eea58f578434d515ee6d991693131d Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 26 May 2026 09:42:39 -0700
-Subject: [PATCH 03/13] Lock CompiledKernel._init_handles, publish _run last
+Subject: [PATCH 03/12] Lock CompiledKernel._init_handles, publish _run last
 
 Re-structure _init_handles() to avoid data races.  On fast path (init
 already done) return early.  Otherwise, acquire init mutex and complete
@@ -17,7 +17,7 @@ Assisted-by: claude-opus-4.6
  1 file changed, 51 insertions(+), 27 deletions(-)
 
 diff --git a/python/triton/compiler/compiler.py b/python/triton/compiler/compiler.py
-index 16e988443..75cf9684a 100644
+index d6f8dd26f..b942ff3ea 100644
 --- a/python/triton/compiler/compiler.py
 +++ b/python/triton/compiler/compiler.py
 @@ -14,6 +14,7 @@ from pathlib import Path
@@ -28,7 +28,7 @@ index 16e988443..75cf9684a 100644
  import time
  import copy
  
-@@ -435,6 +436,17 @@ class CompiledKernel:
+@@ -435,43 +436,66 @@ class CompiledKernel:
          self.module = None
          self.function = None
          self._run = None
@@ -43,11 +43,6 @@ index 16e988443..75cf9684a 100644
 +    def __setstate__(self, state):
 +        self.__dict__.update(state)
 +        self._init_lock = threading.Lock()
- 
-     def __del__(self):
- 
-@@ -446,41 +458,53 @@ class CompiledKernel:
-             self.module = None
  
      def _init_handles(self):
 -        if self.module is not None:
@@ -127,3 +122,6 @@ index 16e988443..75cf9684a 100644
  
      @property
      def run(self):
+-- 
+2.43.0
+

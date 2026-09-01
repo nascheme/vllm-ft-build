@@ -1,7 +1,7 @@
-From 5cc6b11ede2103820f847192c6c855b49078072f Mon Sep 17 00:00:00 2001
+From 80cb3eb814ec17b499fcc3c32186a4cd0314d424 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 26 May 2026 10:10:27 -0700
-Subject: [PATCH 05/13] Lock dtype_ptr2str and dtype2str specialization caches
+Subject: [PATCH 05/12] Lock dtype_ptr2str and dtype2str specialization caches
 
 handle_tensor() and specialize_tensordesc() each mutate a
 process-global std::unordered_map (dtype_ptr2str and dtype2str
@@ -28,10 +28,10 @@ Assisted-by: claude-opus-4.7
  1 file changed, 33 insertions(+), 15 deletions(-)
 
 diff --git a/python/src/specialize.cc b/python/src/specialize.cc
-index 97d0e5392..d90ba09c1 100644
+index 374eba307..8560476ef 100644
 --- a/python/src/specialize.cc
 +++ b/python/src/specialize.cc
-@@ -73,7 +73,9 @@ static PyObject *get_tensor_spec_attr = nullptr;
+@@ -69,7 +69,9 @@ static PyObject *get_tensor_spec_attr = nullptr;
  static PyObject *align_kwarg = nullptr;
  
  static DtypePtr2Str dtype_ptr2str;
@@ -41,7 +41,7 @@ index 97d0e5392..d90ba09c1 100644
  static TypeHandlerCache type_handler_cache;
  
  // Wrappers to make steal and borrow slightly simpler. We use raw CPython API
-@@ -188,16 +190,25 @@ std::pair<py::object, py::object> specialize_tensordesc(PyObject *arg,
+@@ -176,16 +178,25 @@ std::pair<py::object, py::object> specialize_tensordesc(PyObject *arg,
    if (dtype_hash == -1)
      return {};
    DTypeKey dsk{dtype_hash};
@@ -73,7 +73,7 @@ index 97d0e5392..d90ba09c1 100644
    }
  
    std::string desc_cstr;
-@@ -330,19 +341,26 @@ std::pair<py::object, py::object> handle_tensor(PyObject *backend,
+@@ -294,19 +305,26 @@ std::pair<py::object, py::object> handle_tensor(PyObject *backend,
      return {};
  
    DTypePtrKey dsk{dtype_hash, is_const};
@@ -109,3 +109,6 @@ index 97d0e5392..d90ba09c1 100644
    }
  
    // handle alignment specialization of a tensor
+-- 
+2.43.0
+

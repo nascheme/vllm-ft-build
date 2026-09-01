@@ -1,0 +1,92 @@
+From 6236a4ade7ccd89539f88c935de2a1865f6c2d2f Mon Sep 17 00:00:00 2001
+From: Neil Schemenauer <nas@arctrix.com>
+Date: Fri, 28 Aug 2026 01:58:29 +0000
+Subject: [PATCH 1/2] Include device index in compile cache paths
+
+Two engines running in separate threads of one process (the free-threaded
+use case) share a process-wide vLLM cache directory.  Without the device
+index in the path, engines on different CUDA devices collide on the same
+compile / AOT cache entries.
+
+Use current_platform.current_device_index() so the path carries the device,
+adding a Platform.current_device_index() classmethod that falls back to 0
+when no accelerator is available (CPU) instead of raising.
+
+Signed-off-by: Neil Schemenauer <nas@arctrix.com>
+---
+ vllm/compilation/backends.py   | 5 ++++-
+ vllm/compilation/decorators.py | 5 ++++-
+ vllm/platforms/cpu.py          | 4 ++++
+ vllm/platforms/interface.py    | 7 +++++++
+ 4 files changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/vllm/compilation/backends.py b/vllm/compilation/backends.py
+index 8fbf5b41f..3d7dd4fca 100644
+--- a/vllm/compilation/backends.py
++++ b/vllm/compilation/backends.py
+@@ -1074,7 +1074,10 @@ class VllmBackend:
+         self.compilation_config.cache_dir = cache_dir
+         rank = vllm_config.parallel_config.rank
+         dp_rank = vllm_config.parallel_config.data_parallel_index
+-        local_cache_dir = os.path.join(cache_dir, f"rank_{rank}_{dp_rank}", self.prefix)
++        dev = current_platform.current_device_index()
++        local_cache_dir = os.path.join(
++            cache_dir, f"rank_{rank}_{dp_rank}_dev{dev}", self.prefix
++        )
+         os.makedirs(local_cache_dir, exist_ok=True)
+         self.compilation_config.local_cache_dir = local_cache_dir
+ 
+diff --git a/vllm/compilation/decorators.py b/vllm/compilation/decorators.py
+index ad710a6fe..9008e8988 100644
+--- a/vllm/compilation/decorators.py
++++ b/vllm/compilation/decorators.py
+@@ -557,9 +557,12 @@ def _support_torch_compile(
+             # /tmp default during import, making setdefault a no-op.
+             os.environ["TORCHINDUCTOR_CACHE_DIR"] = inductor_cache
+ 
++            from vllm.platforms import current_platform
++
+             rank = self.vllm_config.parallel_config.rank
+             dp_rank = self.vllm_config.parallel_config.data_parallel_index
+-            cache_dir = os.path.join(cache_dir, f"rank_{rank}_{dp_rank}")
++            dev = current_platform.current_device_index()
++            cache_dir = os.path.join(cache_dir, f"rank_{rank}_{dp_rank}_dev{dev}")
+             aot_compilation_path = os.path.join(cache_dir, "model")
+             if not envs.VLLM_DISABLE_COMPILE_CACHE:
+                 loaded_fn = _try_load_aot_compiled_fn(self, aot_compilation_path)
+diff --git a/vllm/platforms/cpu.py b/vllm/platforms/cpu.py
+index 5633e160c..ad264773b 100644
+--- a/vllm/platforms/cpu.py
++++ b/vllm/platforms/cpu.py
+@@ -106,6 +106,10 @@ class CpuPlatform(Platform):
+ 
+         return meminfo.total_memory
+ 
++    @classmethod
++    def current_device_index(cls) -> int:
++        return 0
++
+     @classmethod
+     def set_device(cls, device: torch.device) -> None:
+         """
+diff --git a/vllm/platforms/interface.py b/vllm/platforms/interface.py
+index 5c041f163..69da33eb8 100644
+--- a/vllm/platforms/interface.py
++++ b/vllm/platforms/interface.py
+@@ -530,6 +530,13 @@ class Platform:
+         """
+         return torch.inference_mode(mode=True)
+ 
++    @classmethod
++    def current_device_index(cls) -> int:
++        """Get the index of the current device for the platform."""
++        if not torch.accelerator.is_available():
++            return 0
++        return torch.accelerator.current_device_index()
++
+     @classmethod
+     def set_device(cls, device: torch.device) -> None:
+         """
+-- 
+2.43.0
+

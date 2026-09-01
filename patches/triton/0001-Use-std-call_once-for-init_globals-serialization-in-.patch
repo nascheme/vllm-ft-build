@@ -1,7 +1,7 @@
-From 31d6d099de5de38b0f9a89dbd944ef31dbf51b49 Mon Sep 17 00:00:00 2001
+From a517fed098f4eb37e61cc3184a21878a6b737461 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Sat, 30 May 2026 08:11:15 -0700
-Subject: [PATCH 01/13] Use std::call_once for init_globals() serialization in
+Subject: [PATCH 01/12] Use std::call_once for init_globals() serialization in
  specialize.cc
 
 Under free-threaded CPython, two threads can both observe the plain
@@ -15,18 +15,18 @@ Assisted-by: claude-sonnet-4-6
  1 file changed, 15 insertions(+), 6 deletions(-)
 
 diff --git a/python/src/specialize.cc b/python/src/specialize.cc
-index c4bab9fb2..97d0e5392 100644
+index 3449e3c90..374eba307 100644
 --- a/python/src/specialize.cc
 +++ b/python/src/specialize.cc
-@@ -4,6 +4,7 @@
+@@ -3,6 +3,7 @@
+ #include <cstdint>
  #include <cstdlib>
- #include <cstring>
  #include <functional>
 +#include <mutex>
  #include <pybind11/pybind11.h>
  #include <string>
- #include <string_view>
-@@ -36,7 +37,8 @@ static std::pair<py::object, py::object>
+ #include <unordered_map>
+@@ -34,7 +35,8 @@ static std::pair<py::object, py::object>
  specialize_arg(PyObject *backend, PyObject *arg, bool is_const,
                 bool specialize_value, bool align);
  
@@ -36,7 +36,7 @@ index c4bab9fb2..97d0e5392 100644
  
  static PyObject *constexpr_cls = nullptr;
  static PyObject *jit_callable_cls = nullptr;
-@@ -155,13 +157,22 @@ bool init_globals() noexcept try {
+@@ -143,13 +145,22 @@ bool init_globals() noexcept try {
    init_interned_strings();
    init_type_handler_cache();
  
@@ -60,7 +60,7 @@ index c4bab9fb2..97d0e5392 100644
  std::pair<py::object, py::object> specialize_tensordesc(PyObject *arg,
                                                          bool has_layout) {
    auto base = from_new_ref(PyObject_GetAttr(arg, base_attr));
-@@ -572,10 +583,8 @@ std::pair<py::object, py::object> specialize_arg(PyObject *backend,
+@@ -531,10 +542,8 @@ std::pair<py::object, py::object> specialize_arg(PyObject *backend,
  // main entry-point from Python implementing specialization logic natively
  PyObject *specialize_impl(PyObject *self, PyObject *const *args,
                            Py_ssize_t nargs) {
@@ -73,3 +73,6 @@ index c4bab9fb2..97d0e5392 100644
    }
  
    if (nargs != 5) {
+-- 
+2.43.0
+

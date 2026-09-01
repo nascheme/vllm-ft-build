@@ -29,10 +29,10 @@ case $dev in
         url=https://download.pytorch.org/whl/rocm7.0
         ;;
     cuda)
-        url=https://download.pytorch.org/whl/cu128
+        url=https://download.pytorch.org/whl/cu130
         ;;
     cuda-nightly)
-        url=https://download.pytorch.org/whl/nightly/cu128
+        url=https://download.pytorch.org/whl/nightly/cu130
         pre="--pre"
         torch_req=requirements/torch-nightly.txt
         ;;

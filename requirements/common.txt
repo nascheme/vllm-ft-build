@@ -1,42 +1,50 @@
+# Curated runtime/build set for the free-threaded (CPython 3.14t) CUDA build of
+# vllm v0.28.0.  Exact pins come from vllm v0.28.0's generated test lock
+# (requirements/test/cuda.txt) wherever a ranged upstream requirement has one;
+# ranges are kept only where the locked version has no usable cp314t artifact
+# (numpy/scipy/pillow are locked to 3.12-era versions upstream) or where this
+# build has its own constraint.
 aiohttp>=3.13.3,<4
-anthropic>=0.74.1,<0.75
+anthropic==0.112.0
 blake3>=1.0.8,<2
 build>=1.3.0
 cachetools>=6.2.2,<7
 cbor2>=5.7.1,<6
 cloudpickle>=3.1.2,<4
 cmake
-compressed-tensors==0.15.0.1  # load compressed-tensors quantized checkpoints
+compressed-tensors==0.17.0  # load compressed-tensors quantized checkpoints
 depyf==0.20.0  # torch.compile debugging/profiling (compilation config)
-diskcache>=5.6.3,<6
 einops>=0.8.1
-fastapi>=0.121.3,<0.122
-gguf>=0.17.0
-huggingface_hub>=0.16.4,<2  # runtime dep of tokenizers (built from source, installed --no-deps)
+fastapi==0.136.3  # upstream: fastapi[standard] >=0.133.0,<0.137.0
+gguf>=0.17.0  # upstream dropped the direct requirement in v0.28.0; kept so GGUF checkpoints still load
+huggingface_hub==1.27.0
 ijson
+jsonschema==4.23.0  # new in v0.28.0: MiniMax M3 tool schema validation
 lark==1.2.2  # Lark grammar parsing for structured output
-llguidance>=1.7.0,<1.8.0
+llguidance==1.7.6
 lm-format-enforcer==0.11.3  # lm-format-enforcer structured-output backend
 maturin>=1.10.2
 mcp  # MCP tool server/client integration
-mistral_common>=1.11.2  # core only, no [image] (opencv has no FT support); pulls source-built tiktoken
+mistral_common==1.11.6  # core only, no [image] (opencv has no FT support)
 model-hosting-container-standards>=0.1.14,<1.0.0
 modelscope>=1.32.0,<2
-msgspec>=0.20.0
+msgspec==0.21.1
 ninja
-numba>=0.65.0
-numpy>=2.3.5,<3
+numba==0.65.0
+numpy>=2.3.5,<3  # lock pins 2.2.6, which has no cp314t wheel
+nvtx==0.2.15  # new in v0.28.0: LLM_NVTX_SCOPES_FOR_PROFILING=1
 openai-harmony>=0.0.8
 openai>=2.8.1,<3
-opentelemetry-api>=1.27.0  # OTEL tracing (exporter-otlp omitted: pulls protobuf+grpcio, no FT support)
+opentelemetry-api>=1.27.0  # OTEL tracing (exporter-otlp omitted: pulls grpcio, no FT support)
 opentelemetry-sdk>=1.27.0
 opentelemetry-semantic-conventions-ai>=0.4.1
-outlines_core>=0.2.14
+outlines_core==0.2.14
 partial-json-parser>=0.2.1.1.post7,<0.3
-pillow>=12.0.0,<13
+pillow>=12.0.0,<13  # lock pins 10.4.0, which has no cp314t wheel
 pip>=25.3
 prometheus-client>=0.23.1,<0.24
-prometheus-fastapi-instrumentator>=7.1.0,<8
+prometheus-fastapi-instrumentator==8.0.2  # v8 unblocks starlette >= 1.0
+protobuf==6.33.6  # pure-Python implementation; the abi3 extension is invalid for 3.14t
 psutil>=7.1.3,<8
 py-cpuinfo>=9.0.0,<10
 pybase64>=1.4.2,<2
@@ -46,18 +54,23 @@ python-multipart>=0.0.20,<0.0.21
 pyyaml>=6.0.3,<7
 pyzmq>=27.1.0,<28
 regex>=2025.11.3
-requests>=2.26.0  # runtime dep of tiktoken (built from source, installed --no-deps)
-safetensors>=0.6.2  # new vllm runtime dep; builds from sdist (Rust) under cp314t
+requests>=2.26.0
+safetensors==0.8.0  # no cp314t wheel; uv builds the Rust sdist
 scikit-build-core>=0.11.6,<0.12
-scipy>=1.16.3,<2
-sentencepiece>=0.2.1,<0.3
+scipy>=1.16.3,<2  # lock pins 1.13.1, which has no cp314t wheel
+sentencepiece==0.2.1
 setproctitle>=1.3.6,<2
-setuptools-rust>=1.9.0  # build dep for vllm's optional Rust frontend (vllm-rs)
+setuptools-rust>=1.9.0  # build dep for vllm's Rust frontend (vllm-rs)
 setuptools-scm>=9.2.2
 setuptools>=80.9.0,<81
-six>=1.16.0  # compatibility shim (upstream requires latest for py>3.11)
-transformers==5.12.1  # vllm's runtime range is >=4.56. vllm CI tests against 5.5.3
+six>=1.16.0
+starlette==1.3.1  # new direct requirement in v0.28.0 (CVE-2026-48710)
+tiktoken==0.12.0  # 0.12+ publishes cp314t wheels; no longer built from source
+# torchcodec omitted: its wheel requires system FFmpeg 4-8 shared libs, which are
+# not installed here, and video decoding is already out of scope (PyNvVideoCodec
+# and opencv-python-headless have no free-threaded artifacts either).
+transformers==5.15.0
 uvicorn>=0.38.0,<0.39
 uvloop>=0.22.1,<0.23
 watchfiles>=1.1.1,<2
-xgrammar>=0.2.0,<1.0.0
+xgrammar==0.2.3

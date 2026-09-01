@@ -30,10 +30,13 @@ wheels (no compatible `cp314t` wheels exist):
 
 - `vllm` — editable install
 - `flash-attention` — patched for Python 3.14 (matches vLLM's own source build)
-- `tokenizers` — Rust/PyO3; PyPI ships only abi3 wheels
-- `tiktoken` — Rust/PyO3; same reason
+- `tokenizers` — Rust/PyO3; PyPI ships only abi3 wheels. Pinned to 0.23.1
+  rather than the version vLLM's test lock uses, because 0.22.x builds against
+  PyO3 0.26 and re-enables the GIL on import
 - `triton` — **optional** (`--triton` / `BUILD_TRITON=1`), with free-threading
-  safety patches; omitted by default
+  safety patches; omitted by default. Note that on compute capability 7.5,
+  vLLM selects the Triton attention backend (`vllm-flash-attn` is sm_80+), so
+  the patched build is strongly recommended on Turing rather than optional
 
 (`safetensors` is built automatically from its PyPI sdist.)
 
@@ -43,17 +46,27 @@ All are optional; each affects only the listed feature.
 
 | Package | Why omitted | Impact |
 |---|---|---|
-| `protobuf` | no free-threading support | some tokenizer/gRPC paths (e.g. LlamaTokenizer) may fail or use a slower fallback |
 | `opencv-python-headless` | no free-threading support | video IO / video multimodal models unavailable |
+| `PyNvVideoCodec` | no `cp314t` wheel and no sdist | optional NVIDIA video decode backend unavailable |
+| `torchcodec` | needs system FFmpeg 4–8 shared libs | video decoding unavailable (already gone with `opencv`) |
 | `fastsafetensors` | re-enables the GIL on import | none on the default path; `--load-format fastsafetensors` (GPU Direct Storage) unavailable |
 | `mistral_common[image]` extra | pulls `opencv` | image extra only — core Mistral tokenizer/chat-template **is** installed |
-| `opentelemetry-exporter-otlp` | pulls `protobuf`+`grpcio` | OTLP trace export unavailable; OTEL core (`api`/`sdk`) **is** installed |
+| `opentelemetry-exporter-otlp` | pulls `grpcio`, which has no `cp314t` wheel | OTLP trace export unavailable; OTEL core (`api`/`sdk`) **is** installed |
 | CUDA kernel packages¹ | FT status unverified | optional fast-path kernels off, native fallbacks on |
 | `fastapi[standard]` | partial install | installs `fastapi` plus the pieces actually used, not the full `[standard]` extra set |
 
 ¹ `flashinfer-python`, `flashinfer-cubin`, `apache-tvm-ffi`, `tilelang`,
 `nvidia-cudnn-frontend`, `nvidia-cutlass-dsl`, `quack-kernels`,
 `tokenspeed-mla`, `humming-kernels`.
+
+`protobuf` is now **installed**, as the pure-Python implementation: the abi3
+extension is invalid for 3.14t, so uv selects the `py3-none-any` wheel. That is
+slower than the C++ backend but keeps LlamaTokenizer and vLLM's build
+requirement working.
+
+Some installed packages (`outlines_core`, `openai-harmony`, and the stock
+`triton` wheel) do not declare `Py_MOD_GIL_NOT_USED` and re-enable the GIL on
+import unless `PYTHON_GIL=0` is set, which this build does everywhere.
 
 ## Build
 

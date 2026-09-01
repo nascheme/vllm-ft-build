@@ -53,6 +53,32 @@ def get_build_args(cpus):
     return max_jobs, nvcc_threads
 
 
+def check_triton_prereqs(env):
+    """Report the two prerequisites Triton fails on late and cryptically.
+
+    Triton's prebuilt LLVM exports a ZLIB::ZLIB target, so a missing
+    zlib1g-dev only surfaces as a CMake "target was not found" error.
+    """
+    problems = []
+    if not any(Path(d, "zlib.h").is_file()
+               for d in ("/usr/include", "/usr/local/include")):
+        problems.append(
+            "zlib headers not found (looked for zlib.h in /usr/include and "
+            "/usr/local/include). Triton's LLVM needs them: install "
+            "zlib1g-dev, or point TRITON_APPEND_CMAKE_ARGS at your own zlib."
+        )
+    triton_home = Path(env.get("TRITON_HOME", os.path.expanduser("~")))
+    nvcc_cache = triton_home / ".triton" / "nvidia" / "nvcc"
+    if nvcc_cache.exists() and not os.access(nvcc_cache, os.W_OK):
+        # Can happen from Docker build leaving folder behind.
+        problems.append(
+            f"{nvcc_cache} is not writable; Triton downloads its bundled "
+            "ptxas/nvcc there. Fix the ownership or set TRITON_HOME to a "
+            "writable directory."
+        )
+    return problems
+
+
 def run(cmd, env=None, check=True):
     print("+ ", " ".join(cmd))
     subprocess.run(cmd, check=check, env=env)
@@ -160,6 +186,9 @@ def main():
                 "'BUILD_TRITON=1 ./clone-all.sh' (or ./clone-all.sh --triton) first."
             )
             sys.exit(1)
+        for problem in check_triton_prereqs(env):
+            print(f"Error: {problem}")
+            sys.exit(1)
         try:
             # Triton's own build/runtime requirements (cmake, ninja, ...).
             run(
@@ -199,26 +228,6 @@ def main():
         )
     except subprocess.CalledProcessError as e:
         print(f"tokenizers build failed: {e}")
-        sys.exit(1)
-
-    # tiktoken has no 3.14t wheel, build from source
-    tiktoken_dir = repo_root / "third_party" / "tiktoken"
-    if not tiktoken_dir.is_dir():
-        print(
-            f"Error: {tiktoken_dir} not found. Run './clone-all.sh' first."
-        )
-        sys.exit(1)
-    try:
-        run(
-            [
-                "uv", "pip", "install",
-                "third_party/tiktoken", "-v",
-                "--no-build-isolation", "--no-deps",
-            ],
-            env=env,
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"tiktoken build failed: {e}")
         sys.exit(1)
 
     try:

@@ -15,7 +15,7 @@
 # ---------------------------------------------------------------------------
 # build — System packages, uv, Python, Rust, source builds
 # ---------------------------------------------------------------------------
-FROM nvidia/cuda:12.8.1-devel-ubuntu24.04 AS build
+FROM nvidia/cuda:13.1.0-devel-ubuntu24.04 AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -68,7 +68,7 @@ RUN --mount=type=cache,target=/root/.rustup \
     --mount=type=cache,target=/root/.cargo \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 
-ARG TORCH_INDEX_SUFFIX="cu128"
+ARG TORCH_INDEX_SUFFIX="cu130"
 ENV TORCH_INDEX_URL="https://download.pytorch.org/whl/${TORCH_INDEX_SUFFIX}"
 
 ADD requirements/torch.txt /tmp/r
@@ -159,7 +159,7 @@ RUN set -eux \
                 /staging/root/.local/share/uv \
                 /staging/app \
     # --- CUDA-related system shared libs (cublas, cudnn, nccl, …) --- \
-    # The base nvidia/cuda image already provides /usr/local/cuda-12.8 \
+    # The base nvidia/cuda image already provides /usr/local/cuda-13.1 \
     # runtime libs; we only need the extra libraries installed via apt \
     # in the devel image (cublas, cudnn, nccl, etc.). \
     && for lib in libcublas libcublasLt libcufft libcurand libcusolver \
@@ -184,7 +184,7 @@ RUN set -eux \
 # ---------------------------------------------------------------------------
 # runtime — Minimal production image
 # ---------------------------------------------------------------------------
-FROM nvidia/cuda:12.8.1-base-ubuntu24.04 AS runtime
+FROM nvidia/cuda:13.1.0-base-ubuntu24.04 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 

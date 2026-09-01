@@ -1,2 +1,16 @@
+# Local build inputs and outputs, not part of the repo.
 /cache
 /third_party
+
+# Python bytecode and editable-install metadata.
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Editor and tool leftovers.
+*~
+*.swp
+
+# Written by `uv run` from a pyproject.toml that declares no dependencies, so it
+# pins nothing useful; the real dependency set lives in requirements/.
+/uv.lock

@@ -1,7 +1,7 @@
-From ea04a9ad38e0e7fa332cdbd1349ee85a16e277d5 Mon Sep 17 00:00:00 2001
+From ea76fa90387e76046238cf362ef02b5a1fe7b824 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 14 Apr 2026 11:00:26 -0700
-Subject: [PATCH 12/13] Take _hash_lock in _unsafe_update_src
+Subject: [PATCH 11/12] Take _hash_lock in _unsafe_update_src
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -26,10 +26,10 @@ Assisted-by: claude-opus-4.6
  1 file changed, 7 insertions(+), 2 deletions(-)
 
 diff --git a/python/triton/runtime/jit.py b/python/triton/runtime/jit.py
-index 27bc1174e..f2d5cdae8 100644
+index e0d4c8d79..9d202a49e 100644
 --- a/python/triton/runtime/jit.py
 +++ b/python/triton/runtime/jit.py
-@@ -564,8 +564,13 @@ class JITCallable:
+@@ -546,8 +546,13 @@ class JITCallable:
  
          Note that it is the callers responsibility to make sure any triton functions that call this function have the `.hash` value reset to None.
          """
@@ -45,3 +45,6 @@ index 27bc1174e..f2d5cdae8 100644
  
      def _set_src(self):
          raise AttributeError("Cannot set attribute 'src' directly. "
+-- 
+2.43.0
+

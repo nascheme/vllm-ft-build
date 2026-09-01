@@ -1,7 +1,7 @@
-From 38525da2c2154a3f257aa447f817eb1016e2639e Mon Sep 17 00:00:00 2001
+From c49c013f7679a4c2ceda3e377c1b408ce663e1da Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 14 Apr 2026 11:00:37 -0700
-Subject: [PATCH 13/13] Force cache_key in run() before kernel_cache lookup
+Subject: [PATCH 12/12] Force cache_key in run() before kernel_cache lookup
 
 `JITCallable.used_global_vals` starts empty and is rebound inside
 `cache_key` (under `_hash_lock`) to record the captured globals at
@@ -24,10 +24,10 @@ Assisted-by: claude-opus-4.6
  1 file changed, 7 insertions(+)
 
 diff --git a/python/triton/runtime/jit.py b/python/triton/runtime/jit.py
-index f2d5cdae8..04845bcd1 100644
+index 9d202a49e..1f4370ed7 100644
 --- a/python/triton/runtime/jit.py
 +++ b/python/triton/runtime/jit.py
-@@ -753,6 +753,13 @@ class JITFunction(JITCallable, KernelInterface[T]):
+@@ -735,6 +735,13 @@ class JITFunction(JITCallable, KernelInterface[T]):
          kwargs["debug"] = kwargs.get("debug", self.debug) or knobs.runtime.debug
          kwargs["instrumentation_mode"] = knobs.compilation.instrumentation_mode
  
@@ -41,3 +41,6 @@ index f2d5cdae8..04845bcd1 100644
          # parse options
          device = driver.active.get_current_device()
          stream = driver.active.get_current_stream(device)
+-- 
+2.43.0
+

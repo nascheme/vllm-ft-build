@@ -1,7 +1,7 @@
-From 709527d7ff2d289ecffbc273d55b2cf9d9343312 Mon Sep 17 00:00:00 2001
+From bcacf3242d85f9c9f902d007d5d7068670c75455 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Tue, 14 Apr 2026 10:42:53 -0700
-Subject: [PATCH 08/13] Serialize DriverConfig lazy init and
+Subject: [PATCH 08/12] Serialize DriverConfig lazy init and
  set_active/reset_active
 
 Serialize the lazy init of DriverConfig._default and _active.  This
@@ -79,3 +79,6 @@ index 5801b42fd..d13146633 100644
  
  
  driver = DriverConfig()
+-- 
+2.43.0
+
