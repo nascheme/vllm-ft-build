@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 #
-# Build vllm v0.15.1 with free-threaded Python 3.14t using uv (ROCm / AMD GPU).
+# Build vllm v0.28.0 with free-threaded Python 3.14t using uv (ROCm / AMD GPU).
 #
 # Usage:
-#   docker build --build-arg PYTORCH_ROCM_ARCH="gfx1030" -f Dockerfile.rocm -t vllm-freethreaded-rocm .
+#   docker build --build-arg PYTORCH_ROCM_ARCH="gfx1102" -f Dockerfile.rocm -t vllm-freethreaded-rocm .
 #   docker run -e PYTHON_GIL=0 --device=/dev/kfd --device=/dev/dri \
 #       vllm-freethreaded-rocm python -c "import vllm; print(vllm.__version__)"
 #
@@ -11,12 +11,20 @@
 # image (no slim ROCm runtime image exists).  Build with --squash for a
 # single-layer image.
 #
+# ROCM_VERSION selects the base image tag and TORCH_INDEX_SUFFIX the matching
+# PyTorch wheel index; the two must agree.  7.2.3 / rocm7.2 is what vllm
+# v0.28.0's own docker/Dockerfile.rocm_base targets.  If the host amdgpu/KFD
+# kernel driver is too old for ROCm 7.2 userspace, 7.1.1 / rocm7.1 also has
+# cp314t wheels for the pinned torch 2.13.0.
+#
 # Written with help from Claude Opus 4.6.
+
+ARG ROCM_VERSION=7.2.3
 
 # ---------------------------------------------------------------------------
 # build — System packages, uv, Python, Rust, source builds
 # ---------------------------------------------------------------------------
-FROM rocm/dev-ubuntu-24.04:7.0-complete AS build
+FROM rocm/dev-ubuntu-24.04:${ROCM_VERSION}-complete AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -69,20 +77,44 @@ RUN --mount=type=cache,target=/root/.rustup \
     --mount=type=cache,target=/root/.cargo \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 
-# Install pytorch packages, from rocm index
-ADD requirements/torch.txt /tmp/r
+# Install pytorch packages from the matching ROCm index.  torch 2.13.0 (the
+# version vllm v0.28.0 pins) has no rocm7.0 build, so this must be rocm7.1 or
+# later; keep it in step with ROCM_VERSION above.
+ARG TORCH_INDEX_SUFFIX="rocm7.2"
+ENV TORCH_INDEX_URL="https://download.pytorch.org/whl/${TORCH_INDEX_SUFFIX}"
+
+ADD requirements/torch.txt /tmp/torch.txt
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=cache,target=/root/.rustup \
     --mount=type=cache,target=/root/.cargo \
     UV_HTTP_TIMEOUT=200 \
-    uv pip install -r /tmp/r \
-        --extra-index-url https://download.pytorch.org/whl/rocm7.0
+    uv pip install -r /tmp/torch.txt \
+        --extra-index-url "${TORCH_INDEX_URL}"
 
-ADD requirements/common.txt /tmp/r
+ADD requirements/common.txt /tmp/common.txt
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=cache,target=/root/.rustup \
     --mount=type=cache,target=/root/.cargo \
-    UV_HTTP_TIMEOUT=200 uv pip install -r /tmp/r
+    UV_HTTP_TIMEOUT=200 uv pip install -r /tmp/common.txt
+
+# Put AMD's Triton back.  torch's ROCm wheels depend on triton-rocm, but
+# xgrammar requires a bare `triton` ("triton; platform_machine == 'x86_64' and
+# sys_platform == 'linux'", with no ROCm variant), so the step above pulls the
+# PyPI triton wheel down on top of it.  Both distributions install the same
+# `triton/` package directory, so you end up with two dist-info records
+# claiming one set of files, and the later install wins -- silently replacing
+# the 3.7.1 build torch was compiled against with whatever PyPI's `triton` is
+# at (3.8.0 at the time of writing).  Uninstalling both first is what makes
+# this clean; uninstalling only one deletes files the other now owns.
+#
+# The downside is that `uv pip check` reports xgrammar's `triton` as
+# unsatisfied.  It is satisfied in practice: triton-rocm installs the `triton`
+# module, with both the amd and nvidia backends.  This does not arise on CUDA,
+# where torch depends on `triton` under that exact name.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip uninstall triton triton-rocm \
+    && UV_HTTP_TIMEOUT=200 uv pip install -r /tmp/torch.txt \
+        --extra-index-url "${TORCH_INDEX_URL}"
 
 # Install amdsmi from the ROCm tree into the venv so vllm can detect ROCm GPUs.
 # It's a pure-Python wrapper around a bundled native .so (not a CPython extension),
@@ -97,20 +129,30 @@ COPY patches/ patches/
 # Triton (the installed package) is optional: enable with
 # --build-arg BUILD_TRITON=1.  This is separate from the triton_kernels source
 # checkout below, which vllm's cmake always needs.
+#
+# Torch's ROCm wheels depend on triton-rocm 3.7.1 (AMD's fork), not triton
+# 3.7.1, and both install the same `triton` import package -- so enabling this
+# uninstalls triton-rocm and puts upstream triton-lang/triton in its place,
+# losing whatever AMD carries in the fork.
 ARG BUILD_TRITON=0
 
-# Clone all required repos (triton only when enabled)
+# Clone all required repos (triton only when enabled).
 RUN python clone-repos.py \
         --repo vllm \
-        --repo flash-attention \
         --repo tokenizers \
-        --repo tiktoken \
         $( [ "$BUILD_TRITON" = "1" ] && echo --repo triton )
 
-# Pre-fetch triton kernels so the vllm cmake build doesn't re-download on
-# every rebuild.  TRITON_KERNELS_SRC_DIR tells cmake to use a local checkout.
-RUN git clone --depth 1 --branch v3.5.0 \
-        https://github.com/triton-lang/triton.git /app/triton
+# Pre-fetch triton_kernels so the vllm cmake build doesn't re-download on every
+# rebuild.  TRITON_KERNELS_SRC_DIR tells cmake to use a local checkout.  For a
+# ROCm target, cmake/external_projects/triton_kernels.cmake fetches ROCm's
+# triton fork at this commit (release/internal/3.6.x), not triton-lang's.
+ARG TRITON_KERNELS_COMMIT=0f380657dbf3ee86eb57558ff71df24f03b5d4e7
+RUN mkdir -p /app/triton \
+    && cd /app/triton \
+    && git init -q . \
+    && git remote add origin https://github.com/ROCm/triton.git \
+    && git fetch -q --depth 1 origin "${TRITON_KERNELS_COMMIT}" \
+    && git checkout -q FETCH_HEAD
 
 ARG PYTORCH_ROCM_ARCH="gfx1102"
 ARG MAX_JOBS="4"
@@ -123,6 +165,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     if [ "$BUILD_TRITON" = "1" ]; then \
         export CCACHE_DIR=/root/.ccache MAX_JOBS="${MAX_JOBS}" \
                CC="ccache gcc" CXX="ccache g++" && \
+        uv pip uninstall triton-rocm && \
         uv pip install -r third_party/triton/python/requirements.txt && \
         uv pip install -e third_party/triton -v --no-build-isolation --no-deps ; \
     fi
@@ -135,21 +178,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install third_party/tokenizers/bindings/python -v \
         --no-build-isolation --no-deps
 
-# Build tiktoken from source.  PyPI ships no wheel installable under
-# free-threaded 3.14t.
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=cache,target=/root/.rustup \
-    --mount=type=cache,target=/root/.cargo \
-    uv pip install third_party/tiktoken -v \
-        --no-build-isolation --no-deps
-
 # Build vllm from source (editable — source tree needed at runtime)
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=cache,target=/root/.rustup \
     --mount=type=cache,target=/root/.ccache \
     CCACHE_DIR=/root/.ccache \
-    VLLM_FLASH_ATTN_SRC_DIR=/app/third_party/flash-attention \
     TRITON_KERNELS_SRC_DIR=/app/triton/python/triton_kernels/triton_kernels \
+    VLLM_TARGET_DEVICE=rocm \
     PYTORCH_ROCM_ARCH="${PYTORCH_ROCM_ARCH}" \
     MAX_JOBS="${MAX_JOBS}" \
     CC="ccache gcc" \
@@ -157,6 +192,25 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     CMAKE_HIP_COMPILER_LAUNCHER=ccache \
     uv pip install -e third_party/vllm -v \
         --no-build-isolation --no-deps
+
+# Fail the build early if the HIP extensions came out compiled for something
+# other than the requested arch.  A mismatch here shows up at inference time as
+# "HIP error: invalid device function", which is a long way from the cause.
+RUN set -eu; \
+    found=0; \
+    for f in /app/third_party/vllm/vllm/*.so; do \
+        archs="$(/opt/rocm/llvm/bin/llvm-objdump --offloading "$f" 2>/dev/null \
+                 | grep -o 'gfx[0-9a-f]*' | sort -u | tr '\n' ' ')"; \
+        [ -n "$archs" ] || continue; \
+        found=$((found + 1)); \
+        echo "OFFLOAD $(basename "$f"): ${archs}"; \
+        for want in $(echo "${PYTORCH_ROCM_ARCH}" | tr ';' ' '); do \
+            case " ${archs} " in *" ${want} "*) ;; \
+                *) echo "ERROR: $(basename "$f") not built for ${want}"; exit 1;; \
+            esac; \
+        done; \
+    done; \
+    [ "$found" -gt 0 ] || { echo "ERROR: no HIP offload bundles found"; exit 1; }
 
 # Apply post-install fixups to the built environment.
 RUN python fixup-env.py
@@ -182,7 +236,7 @@ RUN set -eux \
 # ---------------------------------------------------------------------------
 # runtime — Production image
 # ---------------------------------------------------------------------------
-FROM rocm/dev-ubuntu-24.04:7.0-complete AS runtime
+FROM rocm/dev-ubuntu-24.04:${ROCM_VERSION}-complete AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -214,5 +268,7 @@ ENV HIP_PATH=/opt/rocm
 ENV PYTHON_GIL=0
 ENV HIP_FORCE_DEV_KERNARG=1
 ENV SAFETENSORS_FAST_GPU=1
+# Required for RCCL on ROCm >= 7.1 (upstream vllm sets this in its own base image)
+ENV HSA_NO_SCRATCH_RECLAIM=1
 
 WORKDIR /app

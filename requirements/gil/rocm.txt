@@ -1,0 +1,37 @@
+# ------------------------------------------------------------------------------
+# Runtime — ROCm-specific, from third_party/vllm/requirements/rocm.txt (v0.28.0)
+# ------------------------------------------------------------------------------
+# The GIL-enabled reference set: what a stock upstream ROCm build installs on
+# top of common.txt.  Entries commented out are the ones the free-threaded
+# build omits; where the reason is an artifact one, it was checked against
+# PyPI for the pinned version on 2026-09-01.
+#
+# vllm's requirements/rocm.txt also lists datasets, peft and pytest-asyncio,
+# which are test-only, and packaging / setuptools / setuptools-scm /
+# setuptools-rust, which requirements/common.txt already carries.
+#grpcio==1.78.0                # cp314 wheels only, no cp314t; sdist build untried
+#grpcio-reflection==1.78.0     # pure Python, but pointless without grpcio
+numba==0.65.0                  # already pinned in requirements/common.txt
+#tensorizer==2.10.1            # optional model loader; not exercised by this build
+#runai-model-streamer[s3,gcs,azure]==0.15.7  # optional loader; no cp314t artifact
+#conch-triton-kernels==1.2.1   # optional ROCm Triton kernel pack; not exercised
+#timm>=1.0.17                  # only needed by some vision models
+#amd-quark==0.12.post1         # Quark quantization; not exercised by this build
+#tilelang==0.1.10              # abi3 wheel is invalid for 3.14t; sdist build untried
+#apache-tvm-ffi==0.1.10        # only consumed by tilelang
+#fastsafetensors>=0.3.3        # cp314 wheels only, no cp314t (also omitted on CUDA)
+#
+# Installed by the Dockerfile rather than from a requirements file:
+#   amdsmi   from /opt/rocm/share/amd_smi in the base image (--no-deps).  vllm
+#            only warns if it is missing and falls back to torch.cuda, but the
+#            stateless device count and GCN-arch query both go through it.
+#
+# Not listed by upstream but pulled in as a torch dependency from the ROCm
+# wheel index: triton-rocm 3.7.1 (torch's ROCm builds no longer use the
+# separate pytorch-triton-rocm package, whose index stops at 3.5.1).
+# BUILD_TRITON=1 replaces that wheel with an editable source build of
+# triton-lang/triton carrying the patches in patches/triton/.
+#
+# Watch out: xgrammar in common.txt requires a bare `triton`, which on ROCm is
+# a *different* distribution installing the same `triton/` directory as
+# triton-rocm.  Dockerfile.rocm has a step that undoes the resulting mess.

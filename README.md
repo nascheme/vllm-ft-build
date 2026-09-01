@@ -263,9 +263,23 @@ build.  A summary of nVidia compute hardware follows.
 
 ### ROCm build
 
-For the ROCm build, you will need to set PYTORCH_ROCM_ARCH to the correct
-device.  For Dockerfile.rocm, use `--build-arg PYTORCH_ROCM_ARCH=<arch>`.  A
-summary of recent hardware follows.
+`build_docker.py --compute=rocm` reads the GPU's gfx target from
+`/sys/class/kfd/kfd/topology/nodes/*/properties` and passes it through as
+`PYTORCH_ROCM_ARCH`.  Override it with `PYTORCH_ROCM_ARCH=<arch>` in the
+environment, or build directly with `--build-arg PYTORCH_ROCM_ARCH=<arch>`.
+
+The ROCm version is set in two places that must agree: `ROCM_VERSION` (base
+image tag) and `TORCH_INDEX_SUFFIX` (PyTorch wheel index).  The default is
+7.2.3 / `rocm7.2`, matching vLLM v0.28.0's own `docker/Dockerfile.rocm_base`.
+torch 2.13.0 has no `rocm7.0` build at all, so 7.0 is no longer an option;
+`rocm7.1` carries the same torch/torchvision/torchaudio versions if the host
+kernel driver turns out to be too old for 7.2 userspace:
+
+```bash
+ROCM_VERSION=7.1.1 TORCH_INDEX_SUFFIX=rocm7.1 ./build_docker.py --compute=rocm
+```
+
+A summary of recent hardware follows.
 
 | GPU Generation | GFX Targets | Example Hardware |
 |---|---|---|

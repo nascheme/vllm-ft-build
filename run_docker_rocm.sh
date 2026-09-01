@@ -27,10 +27,12 @@ EOF
 # folder for HF_HOME
 test -e cache || mkdir cache
 
-# You might need to use an environment variable like the following, depending
-# on your GPU hardware.
-#
-#    -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
+# Avoid setting HSA_OVERRIDE_GFX_VERSION here.  It is for GPUs ROCm has
+# no kernels for at all; on hardware ROCm supports natively it lies to
+# the runtime about the ISA and segfaults in libhsa-runtime64.so (see
+# rocm_dev_bug.md).  If you get "HIP error: invalid device function",
+# the image was built for the wrong arch -- rebuild with the right
+# PYTORCH_ROCM_ARCH.
 
 docker run \
     -it \

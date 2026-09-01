@@ -4,6 +4,7 @@
 # RAM and number of CPUs.
 
 import argparse
+import glob
 import multiprocessing
 import os
 import subprocess
@@ -31,6 +32,42 @@ def get_build_args(cpus):
     nvcc_threads = min(nvcc_threads, 4)  # NVCC gains diminish after 4
 
     return max_jobs, nvcc_threads
+
+
+def detect_rocm_arch():
+    """Return the host GPU's gfx target, e.g. "gfx1102", or None.
+
+    The kernel driver publishes gfx_target_version as MMmmss in decimal
+    (110002 -> gfx1102, 90402 -> gfx942, 90010 -> gfx90a); the stepping is
+    rendered in hex, which is where the trailing letter in gfx90a comes from.
+    Node 0 is the CPU node and reports 0, so it is skipped.
+    """
+    archs = []
+    nodes = sorted(
+        glob.glob("/sys/class/kfd/kfd/topology/nodes/*/properties")
+    )
+    for path in nodes:
+        try:
+            with open(path) as f:
+                for line in f:
+                    key, _, value = line.partition(" ")
+                    if key != "gfx_target_version":
+                        continue
+                    version = int(value)
+                    if version == 0:  # CPU node
+                        break
+                    major, minor, step = (
+                        version // 10000,
+                        (version // 100) % 100,
+                        version % 100,
+                    )
+                    arch = f"gfx{major}{minor}{step:x}"
+                    if arch not in archs:
+                        archs.append(arch)
+                    break
+        except OSError:
+            continue
+    return ";".join(archs) if archs else None
 
 
 def main():
@@ -90,11 +127,31 @@ def main():
             f"TORCH_CUDA_ARCH_LIST={arch_list}",
         ]
     elif compute == "rocm":
-        arch = os.environ.get("TORCH_ROCM_ARCH") or "gfx1030"
+        arch = (
+            os.environ.get("PYTORCH_ROCM_ARCH")
+            or os.environ.get("TORCH_ROCM_ARCH")
+            or detect_rocm_arch()
+        )
+        if not arch:
+            print(
+                "Error: could not detect the GPU architecture from "
+                "/sys/class/kfd. Set PYTORCH_ROCM_ARCH (for example "
+                "PYTORCH_ROCM_ARCH=gfx1102) and re-run."
+            )
+            sys.exit(2)
+        print(f"Building HIP kernels for: {arch}")
         cmd += [
             "--build-arg",
             f"PYTORCH_ROCM_ARCH={arch}",
         ]
+        # ROCM_VERSION picks the base image tag, TORCH_INDEX_SUFFIX the
+        # matching PyTorch wheel index; the two must stay in step.  Both
+        # default in the Dockerfile; override together, e.g.
+        # ROCM_VERSION=7.1.1 TORCH_INDEX_SUFFIX=rocm7.1 ./build_docker.py --compute=rocm
+        for key in ("ROCM_VERSION", "TORCH_INDEX_SUFFIX"):
+            value = os.environ.get(key)
+            if value:
+                cmd += ["--build-arg", f"{key}={value}"]
     elif compute == "cpu":
         # Pass through any VLLM_CPU_* env vars as build args
         for key, value in os.environ.items():
