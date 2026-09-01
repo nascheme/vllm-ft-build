@@ -1,6 +1,11 @@
 # vLLM v0.28.0 pins torch==2.13.0 / torchvision==0.28.0 / torchaudio==2.11.0.
-# CUDA variant: cu130, matching the local toolkit /usr/local/cuda-13.1.0
-# (installed via setup-venv.sh --extra-index-url .../whl/cu130).
+# The same three pins are shared by every backend; what differs is the wheel
+# index the Dockerfiles / setup-venv.sh point at, which supplies the local
+# version:
+#   cuda  --extra-index-url .../whl/cu130   -> +cu130   (toolkit /usr/local/cuda-13.1.0)
+#   rocm  --extra-index-url .../whl/rocm7.2 -> +rocm7.2
+#   cpu   --extra-index-url .../whl/cpu     -> +cpu
+# All three publish cp314-cp314t wheels at these versions.
 torch==2.13.0
 torchaudio==2.11.0
 torchvision==0.28.0

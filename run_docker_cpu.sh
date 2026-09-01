@@ -4,7 +4,7 @@
 
 PORT=8889
 IMAGE=vllm-freethreaded-cpu
-MODEL=meta-llama/Llama-3.2-3B-Instruct
+MODEL=HuggingFaceTB/SmolLM2-360M-Instruct
 
 cat <<EOF
 
@@ -19,13 +19,20 @@ curl http://localhost:$PORT/v1/completions \\
     -d '{
         "prompt": "San Francisco is a",
         "max_tokens": 7,
-        "temperature": 0.8
+        "temperature": 0
     }'
 
 EOF
 
 # folder for HF_HOME
-test -e cache || mkdir cache
+test -d cache || mkdir cache
+
+# Upstream LD_PRELOADs tcmalloc and libiomp5 on x86_64.  Not done here by
+# default (libiomp5 next to torch's libgomp means two OpenMP runtimes).  To try:
+#
+#   -e LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libtcmalloc_minimal.so.4:/app/.venv/lib/libiomp5.so
+#
+# VLLM_CPU_OMP_THREADS_BIND and VLLM_CPU_NUM_OF_RESERVED_CPU matter on NUMA boxes.
 
 docker run \
     --rm \

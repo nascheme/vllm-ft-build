@@ -10,11 +10,12 @@ import os
 import subprocess
 import sys
 
-# vLLM needs ~6-8GB per job to be safe
+# ~6-8GB per job when nvcc/hipcc is involved; plain g++ needs far less.
 RAM_PER_JOB = 8
+RAM_PER_JOB_CPU = 2
 
 
-def get_build_args(cpus):
+def get_build_args(cpus, ram_per_job=RAM_PER_JOB):
     # Calculate available RAM (in GB)
     with open("/proc/meminfo", "r") as f:
         mem_total_kb = int(
@@ -23,7 +24,7 @@ def get_build_args(cpus):
     ram_gb = mem_total_kb / 1e6
 
     # On 64GB, this will result in 8 jobs.
-    max_jobs = max(1, int(ram_gb // RAM_PER_JOB))
+    max_jobs = max(1, int(ram_gb // ram_per_job))
     max_jobs = min(max_jobs, cpus)
 
     # Use remaining CPU overhead for NVCC internal threading
@@ -92,9 +93,10 @@ def main():
     compute = args.compute
 
     cpus = multiprocessing.cpu_count()
-    max_jobs, nvcc_threads = get_build_args(cpus)
+    ram_per_job = RAM_PER_JOB_CPU if compute == "cpu" else RAM_PER_JOB
+    max_jobs, nvcc_threads = get_build_args(cpus, ram_per_job)
     print(
-        f"Detected: {cpus} CPUs, ~{(max_jobs * RAM_PER_JOB)}GB RAM allocated"
+        f"Detected: {cpus} CPUs, ~{(max_jobs * ram_per_job)}GB RAM allocated"
     )
     print(f"Setting MAX_JOBS={max_jobs}, NVCC_THREADS={nvcc_threads}")
     print(f"Building for compute backend: {compute}")
@@ -153,9 +155,16 @@ def main():
             if value:
                 cmd += ["--build-arg", f"{key}={value}"]
     elif compute == "cpu":
-        # Pass through any VLLM_CPU_* env vars as build args
-        for key, value in os.environ.items():
-            if key.startswith("VLLM_CPU_"):
+        # Cross-compilation ISA switches, when set.
+        for key in (
+            "VLLM_CPU_X86",
+            "VLLM_CPU_ARM_BF16",
+            "VLLM_CPU_ARM_I8MM",
+            "VLLM_CPU_RVV_BF16",
+            "TORCH_INDEX_SUFFIX",
+        ):
+            value = os.environ.get(key)
+            if value:
                 cmd += ["--build-arg", f"{key}={value}"]
     else:
         raise RuntimeError
