@@ -1,10 +1,10 @@
 # ------------------------------------------------------------------------------
-# Test-only — from third_party/vllm/requirements/test/cuda.in
-# (packages already listed above or in ./requirements/* are omitted)
+# Test-only — from third_party/vllm/requirements/test/cuda.in, for reference.
+# Not installed by any build; packages already in ../*.txt are omitted.
 #
-# Note: test/cuda.in pins transformers==5.5.3 and tokenizers==0.22.2; the
-# runtime section above allows newer versions.  Pin these here if running
-# tests against that exact vllm commit.
+# Note: test/cuda.in pins transformers==5.5.3 and tokenizers==0.22.2;
+# ../common.txt allows newer versions.  Pin these here if running tests
+# against that exact vllm commit.
 # ------------------------------------------------------------------------------
 pytest
 pytest-forked

@@ -1,10 +1,9 @@
 # ------------------------------------------------------------------------------
 # Runtime — CPU-specific, from third_party/vllm/requirements/cpu.txt (v0.28.0)
 # ------------------------------------------------------------------------------
-# The GIL-enabled reference set: what a stock upstream CPU build installs on
-# top of common.txt.  Entries commented out are the ones the free-threaded
-# build omits; where the reason is an artifact one, it was checked against
-# PyPI / download.pytorch.org for the pinned version on 2026-09-01.
+# Upstream's list, for reference.  Entries commented out are the ones the
+# free-threaded build omits; artifact availability was checked against PyPI /
+# download.pytorch.org for the pinned version on 2026-09-01.
 #
 # torch/torchvision/torchaudio come from requirements/torch.txt (+cpu index).
 numba==0.65.0                  # already pinned in requirements/common.txt

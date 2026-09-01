@@ -1,8 +1,8 @@
 # ------------------------------------------------------------------------------
 # Runtime — CUDA-specific, from third_party/vllm/requirements/cuda.txt (v0.28.0)
 # ------------------------------------------------------------------------------
-# The GIL-enabled reference set: what a stock upstream CUDA build installs.
-# Entries commented out are the ones the free-threaded build omits
+# Upstream's list, for reference.  Entries commented out are the ones the
+# free-threaded build omits.
 torchcodec>=0.14              # needs system FFmpeg 4-8 shared libs
 #PyNvVideoCodec==2.0.4        # wheel-only, no cp314t wheel and no sdist
 #flashinfer-python==0.6.16.post3

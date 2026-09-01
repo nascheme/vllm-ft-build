@@ -239,6 +239,26 @@ Run vLLM using uv:
 
 For Docker runs, use the run_docker_*.sh scripts listed above.
 
+#### GIL-enabled build for comparison
+
+To measure the effect of free-threading, build the same package set on a
+standard (GIL-enabled) Python 3.14 by passing `-p 3.14` when creating the venv:
+
+```bash
+./setup-venv.sh -p 3.14 cuda
+./clone-all.sh
+./install-all.sh
+```
+
+Everything else is unchanged: the same source checkouts, patches, and
+requirements are used, so the interpreter is the only variable.  This is not
+a stock upstream install; the packages listed under "Omitted optional
+packages" are still left out.  `run_simple.sh` detects the interpreter and
+only sets `PYTHON_GIL=0` on a free-threaded build (setting it on a standard
+build is an error).  For reference, upstream's own requirement lists are
+mirrored in `requirements/upstream/`, with the entries this build omits
+commented out and annotated.
+
 ## Build details
 
 The repository uses a mixture of pre-built wheels and source builds (via
