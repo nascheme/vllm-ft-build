@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 #
-# Build vllm v0.28.0 with free-threaded Python 3.14t using uv (CPU backend).
+# Build vllm v0.32.0 with free-threaded Python 3.14t using uv (CPU backend).
 #
 # Usage:
 #   docker build -f Dockerfile.cpu -t vllm-freethreaded-cpu .
 #   docker run -e PYTHON_GIL=0 vllm-freethreaded-cpu python -c "import vllm; print(vllm.__version__)"
 #
 # CPU ISA build arguments (cross-compilation only; native builds detect the
-# host).  On x86, v0.28.0 builds three kernel variants (_C, _C_AVX512,
+# host).  On x86, v0.32.0 builds three kernel variants (_C, _C_AVX512,
 # _C_AVX2) and picks one at import time; see cmake/cpu_extension.cmake.
 #
 #   VLLM_CPU_X86=0       force the x86 kernel set when cross-compiling
@@ -124,7 +124,7 @@ RUN if [ "$TARGETARCH" = "arm64" ] && [ "$VLLM_CPU_X86" != "0" ]; then \
     fi
 
 # Copy clone infrastructure
-COPY clone-repos.py git-repos.txt fixup-env.py ./
+COPY clone-repos.py git-repos.txt ./
 COPY patches/ patches/
 
 # Triton is optional on CPU: the CPU backend's kernels are the C++ extensions
@@ -134,7 +134,6 @@ ARG BUILD_TRITON=0
 # Clone required repos (triton only when enabled)
 RUN python clone-repos.py \
         --repo vllm \
-        --repo tokenizers \
         $( [ "$BUILD_TRITON" = "1" ] && echo --repo triton )
 
 # Optionally build Triton from source (editable). Builds GPU-free; it downloads
@@ -147,14 +146,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         uv pip install -r third_party/triton/python/requirements.txt && \
         uv pip install -e third_party/triton -v --no-build-isolation --no-deps ; \
     fi
-
-# Build tokenizers from source.  PyPI ships no wheel installable under
-# free-threaded 3.14t.
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=cache,target=/root/.rustup \
-    --mount=type=cache,target=/root/.cargo \
-    uv pip install third_party/tokenizers/bindings/python -v \
-        --no-build-isolation --no-deps
 
 # Build vllm from source (editable -- source tree needed at runtime).  This
 # step fetches and statically links oneDNN, and on x86 compiles the kernels
@@ -194,9 +185,6 @@ RUN set -eu; \
         echo "ERROR: abi3 extensions built under free-threading:"; \
         ls -1 *abi3*.so; exit 1; \
     fi
-
-# Apply post-install fixups to the built environment
-RUN python fixup-env.py
 
 # staging — Assemble only the files needed at runtime
 RUN set -eux \

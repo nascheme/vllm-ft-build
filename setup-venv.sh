@@ -26,7 +26,7 @@ case $dev in
         url=https://download.pytorch.org/whl/cpu
         ;;
     rocm)
-        url=https://download.pytorch.org/whl/rocm7.0
+        url=https://download.pytorch.org/whl/rocm7.2
         ;;
     cuda)
         url=https://download.pytorch.org/whl/cu130

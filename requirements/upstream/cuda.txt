@@ -1,19 +1,19 @@
 # ------------------------------------------------------------------------------
-# Runtime — CUDA-specific, from third_party/vllm/requirements/cuda.txt (v0.28.0)
+# Runtime — CUDA-specific, from third_party/vllm/requirements/cuda.txt (v0.32.0)
 # ------------------------------------------------------------------------------
 # Upstream's list, for reference.  Entries commented out are the ones the
 # free-threaded build omits.
 torchcodec>=0.14              # needs system FFmpeg 4-8 shared libs
 #PyNvVideoCodec==2.0.4        # wheel-only, no cp314t wheel and no sdist
-#flashinfer-python==0.6.16.post3
-#flashinfer-cubin==0.6.16.post3
-#apache-tvm-ffi==0.1.11       # only consumed by flashinfer/tilelang
+#flashinfer-python==0.7.0.post1
+apache-tvm-ffi==0.1.11        # now required by xgrammar; pinned in common.txt
 #tilelang==0.1.12             # abi3 wheel rejected by 3.14t; sdist build untested
 #nvidia-cudnn-frontend>=1.19.1  # only consumed by flashinfer
 nvtx==0.2.15
-#fastsafetensors>=0.3.3       # opt-in loader; not FT-safe as of 0.3.2, 0.3.3 unstressed
-#nvidia-cutlass-dsl[cu13]==4.6.2  # FA4/CuTe-DSL needs sm90+, unusable on sm_75
-#quack-kernels==0.6.4         # torch-c-dlpack-ext has no cp314t artifact
-#tokenspeed-mla==0.1.8        # tokenspeed-triton has no cp314t wheel or sdist
-#humming-kernels[cu13]==0.1.12  # no FT evidence; quantization gemm only
+#fastsafetensors>=0.3.3       # opt-in loader; no cp314t wheel, FT status unverified
+#instanttensor>=0.2.2         # opt-in loader; no cp314t wheel
+#nvidia-cutlass-dsl[cu13]==4.8.0  # FA4/CuTe-DSL needs sm90+, unusable on sm_75
+#quack-kernels==0.6.5         # torch-c-dlpack-ext has no cp314t artifact
+#tokenspeed-mla==0.2.15       # installable now, but no FT evidence; opt-in backend
+#humming-kernels[cu13]==0.1.17  # no FT evidence; quantization gemm only
 numba==0.65.0

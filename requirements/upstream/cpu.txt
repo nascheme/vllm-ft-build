@@ -1,21 +1,21 @@
 # ------------------------------------------------------------------------------
-# Runtime — CPU-specific, from third_party/vllm/requirements/cpu.txt (v0.28.0)
+# Runtime — CPU-specific, from third_party/vllm/requirements/cpu.txt (v0.32.0)
 # ------------------------------------------------------------------------------
 # Upstream's list, for reference.  Entries commented out are the ones the
 # free-threaded build omits; artifact availability was checked against PyPI /
-# download.pytorch.org for the pinned version on 2026-09-01.
+# download.pytorch.org for the pinned version on 2026-10-30.
 #
 # torch/torchvision/torchaudio come from requirements/torch.txt (+cpu index).
 numba==0.65.0                  # already pinned in requirements/common.txt
 intel-openmp==2024.2.1         # x86_64 only; py2.py3-none wheel, just libiomp5.so
 py-cpuinfo                     # aarch64 only upstream; common.txt carries it anyway
 #torchcodec>=0.14              # needs system FFmpeg 4-8 shared libs; also omitted on CUDA
-#setuptools==77.0.3            # upstream pin; common.txt's newer setuptools builds fine
+#setuptools==78.1.1            # upstream pin; common.txt's newer setuptools builds fine
+#triton (triton-cpu 3.8.0)     # cp310-cp312 wheels only; C++ fallbacks are used instead
 #
-# Not listed by upstream but installed anyway: xgrammar requires a bare
-# `triton`, so the PyPI wheel lands in the CPU image.  Harmless: nothing on
-# the CPU path imports it.
+# xgrammar requires a bare `triton`, so the stock PyPI wheel lands in the CPU
+# image.  It has no CPU backend, so vllm disables Triton (this relies on the
+# "cpu" version suffix) and registers its C++ kernel overrides.
 #
 # Not carried: upstream LD_PRELOADs libtcmalloc_minimal and libiomp5 (see
-# run_docker_cpu.sh), and builds triton-cpu into its dev/test images, which
-# nothing in the serving path needs.
+# run_docker_cpu.sh), which is unrelated to Triton.

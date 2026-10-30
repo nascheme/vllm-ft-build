@@ -1,9 +1,9 @@
 # ------------------------------------------------------------------------------
-# Runtime — ROCm-specific, from third_party/vllm/requirements/rocm.txt (v0.28.0)
+# Runtime — ROCm-specific, from third_party/vllm/requirements/rocm.txt (v0.32.0)
 # ------------------------------------------------------------------------------
 # Upstream's list, for reference.  Entries commented out are the ones the
 # free-threaded build omits; artifact availability was checked against PyPI
-# for the pinned version on 2026-09-01.
+# for the pinned version on 2026-10-30.
 #
 # vllm's requirements/rocm.txt also lists datasets, peft and pytest-asyncio,
 # which are test-only, and packaging / setuptools / setuptools-scm /
@@ -17,8 +17,9 @@ numba==0.65.0                  # already pinned in requirements/common.txt
 #timm>=1.0.17                  # only needed by some vision models
 #amd-quark==0.12.post1         # Quark quantization; not exercised by this build
 #tilelang==0.1.10              # abi3 wheel is invalid for 3.14t; sdist build untried
-#apache-tvm-ffi==0.1.10        # only consumed by tilelang
+apache-tvm-ffi==0.1.11         # now required by xgrammar; pinned in common.txt
 #fastsafetensors>=0.3.3        # cp314 wheels only, no cp314t (also omitted on CUDA)
+#mooncake-transfer-engine-rocm>=0.3.13  # no cp314 wheel and no sdist
 #
 # Installed by the Dockerfile rather than from a requirements file:
 #   amdsmi   from /opt/rocm/share/amd_smi in the base image (--no-deps).  vllm

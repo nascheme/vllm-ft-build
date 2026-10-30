@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Build vllm v0.28.0 with free-threaded Python 3.14t using uv (ROCm / AMD GPU).
+# Build vllm v0.32.0 with free-threaded Python 3.14t using uv (ROCm / AMD GPU).
 #
 # Usage:
 #   docker build --build-arg PYTORCH_ROCM_ARCH="gfx1102" -f Dockerfile.rocm -t vllm-freethreaded-rocm .
@@ -13,7 +13,7 @@
 #
 # ROCM_VERSION selects the base image tag and TORCH_INDEX_SUFFIX the matching
 # PyTorch wheel index; the two must agree.  7.2.3 / rocm7.2 is what vllm
-# v0.28.0's own docker/Dockerfile.rocm_base targets.  If the host amdgpu/KFD
+# v0.32.0's own docker/Dockerfile.rocm_base targets.  If the host amdgpu/KFD
 # kernel driver is too old for ROCm 7.2 userspace, 7.1.1 / rocm7.1 also has
 # cp314t wheels for the pinned torch 2.13.0.
 #
@@ -78,7 +78,7 @@ RUN --mount=type=cache,target=/root/.rustup \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
 
 # Install pytorch packages from the matching ROCm index.  torch 2.13.0 (the
-# version vllm v0.28.0 pins) has no rocm7.0 build, so this must be rocm7.1 or
+# version vllm v0.32.0 pins) has no rocm7.0 build, so this must be rocm7.1 or
 # later; keep it in step with ROCM_VERSION above.
 ARG TORCH_INDEX_SUFFIX="rocm7.2"
 ENV TORCH_INDEX_URL="https://download.pytorch.org/whl/${TORCH_INDEX_SUFFIX}"
@@ -123,7 +123,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install /opt/rocm/share/amd_smi --no-deps
 
 # Copy clone infrastructure
-COPY clone-repos.py git-repos.txt fixup-env.py ./
+COPY clone-repos.py git-repos.txt ./
 COPY patches/ patches/
 
 # Triton (the installed package) is optional: enable with
@@ -139,14 +139,13 @@ ARG BUILD_TRITON=0
 # Clone all required repos (triton only when enabled).
 RUN python clone-repos.py \
         --repo vllm \
-        --repo tokenizers \
         $( [ "$BUILD_TRITON" = "1" ] && echo --repo triton )
 
 # Pre-fetch triton_kernels so the vllm cmake build doesn't re-download on every
 # rebuild.  TRITON_KERNELS_SRC_DIR tells cmake to use a local checkout.  For a
 # ROCm target, cmake/external_projects/triton_kernels.cmake fetches ROCm's
-# triton fork at this commit (release/internal/3.6.x), not triton-lang's.
-ARG TRITON_KERNELS_COMMIT=0f380657dbf3ee86eb57558ff71df24f03b5d4e7
+# triton fork at this commit (release/internal/3.8.x), not triton-lang's.
+ARG TRITON_KERNELS_COMMIT=669b31acc1dd1b3fd93286afd5db67f65d9f7557
 RUN mkdir -p /app/triton \
     && cd /app/triton \
     && git init -q . \
@@ -170,17 +169,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
         uv pip install -e third_party/triton -v --no-build-isolation --no-deps ; \
     fi
 
-# Build tokenizers from source.  PyPI ships no wheel installable under
-# free-threaded 3.14t.
+# Build vllm from source (editable — source tree needed at runtime).  As on
+# CUDA and CPU, no cargo is visible here, so the optional vllm-rs binary is
+# skipped.  It is unused unless VLLM_USE_RUST_FRONTEND=1.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=cache,target=/root/.rustup \
-    --mount=type=cache,target=/root/.cargo \
-    uv pip install third_party/tokenizers/bindings/python -v \
-        --no-build-isolation --no-deps
-
-# Build vllm from source (editable — source tree needed at runtime)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=cache,target=/root/.rustup \
     --mount=type=cache,target=/root/.ccache \
     CCACHE_DIR=/root/.ccache \
     TRITON_KERNELS_SRC_DIR=/app/triton/python/triton_kernels/triton_kernels \
@@ -211,9 +203,6 @@ RUN set -eu; \
         done; \
     done; \
     [ "$found" -gt 0 ] || { echo "ERROR: no HIP offload bundles found"; exit 1; }
-
-# Apply post-install fixups to the built environment.
-RUN python fixup-env.py
 
 # staging — Assemble only the files needed at runtime
 RUN set -eux \
