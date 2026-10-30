@@ -30,15 +30,17 @@ wheels (no compatible `cp314t` wheels exist):
 
 - `vllm` — editable install
 - `flash-attention` — patched for Python 3.14 (matches vLLM's own source build)
-- `tokenizers` — Rust/PyO3; PyPI ships only abi3 wheels. Pinned to 0.23.1
-  rather than the version vLLM's test lock uses, because 0.22.x builds against
-  PyO3 0.26 and re-enables the GIL on import
 - `triton` — **optional** (`--triton` / `BUILD_TRITON=1`), with free-threading
   safety patches; omitted by default. Note that on compute capability 7.5,
   vLLM selects the Triton attention backend (`vllm-flash-attn` is sm_80+), so
   the patched build is strongly recommended on Turing rather than optional
 
-(`safetensors` is built automatically from its PyPI sdist.)
+(`safetensors`, `outlines_core` and `oss-harmony` are built automatically from
+their PyPI sdists.)
+
+The optional Rust frontend (`vllm-rs`, used only with `VLLM_USE_RUST_FRONTEND=1`)
+is not built by the Docker images and is not supported here.  A host build tries
+it when `cargo` is on PATH; a failure there is not fatal.
 
 ### Omitted optional packages
 
@@ -46,6 +48,9 @@ All are optional; each affects only the listed feature.
 
 | Package | Why omitted | Impact |
 |---|---|---|
+| `instanttensor` | no `cp314t` wheel | none on the default path; `--load-format instanttensor` unavailable |
+| `mooncake-transfer-engine-rocm` | no `cp314` wheel and no sdist | Mooncake KV connector unavailable on ROCm |
+| `triton-cpu` | no `cp314t` wheel | CPU only: vLLM uses its C++ kernel fallbacks and logs a warning |
 | `opencv-python-headless` | no free-threading support | video IO / video multimodal models unavailable |
 | `PyNvVideoCodec` | no `cp314t` wheel and no sdist | optional NVIDIA video decode backend unavailable |
 | `torchcodec` | needs system FFmpeg 4–8 shared libs | video decoding unavailable (already gone with `opencv`) |
@@ -55,7 +60,7 @@ All are optional; each affects only the listed feature.
 | CUDA kernel packages¹ | FT status unverified | optional fast-path kernels off, native fallbacks on |
 | `fastapi[standard]` | partial install | installs `fastapi` plus the pieces actually used, not the full `[standard]` extra set |
 
-¹ `flashinfer-python`, `flashinfer-cubin`, `apache-tvm-ffi`, `tilelang`,
+¹ `flashinfer-python`, `tilelang`,
 `nvidia-cudnn-frontend`, `nvidia-cutlass-dsl`, `quack-kernels`,
 `tokenspeed-mla`, `humming-kernels`.
 
@@ -64,7 +69,7 @@ extension is invalid for 3.14t, so uv selects the `py3-none-any` wheel. That is
 slower than the C++ backend but keeps LlamaTokenizer and vLLM's build
 requirement working.
 
-Some installed packages (`outlines_core`, `openai-harmony`, and the stock
+Some installed packages (`outlines_core`, `oss-harmony`, and the stock
 `triton` wheel) do not declare `Py_MOD_GIL_NOT_USED` and re-enable the GIL on
 import unless `PYTHON_GIL=0` is set, which this build does everywhere.
 
@@ -136,7 +141,8 @@ Prerequisites (host must provide):
 
 - CUDA toolkit / developer files and a working compiler toolchain (gcc, g++,
   cmake). Ensure CUDA_HOME or CUDA_PATH points to your CUDA installation.
-- Rust (rustup/cargo) - required to build tokenizers/safetensors from source.
+- Rust (rustup/cargo) - required to build safetensors, outlines_core and
+  oss-harmony from their sdists.
 - uv (https://github.com/astral-sh/uv) on your PATH.
 - Optional but recommended: ccache (the scripts enable/use a CCACHE_DIR).
 
@@ -290,7 +296,7 @@ environment, or build directly with `--build-arg PYTORCH_ROCM_ARCH=<arch>`.
 
 The ROCm version is set in two places that must agree: `ROCM_VERSION` (base
 image tag) and `TORCH_INDEX_SUFFIX` (PyTorch wheel index).  The default is
-7.2.3 / `rocm7.2`, matching vLLM v0.28.0's own `docker/Dockerfile.rocm_base`.
+7.2.3 / `rocm7.2`, matching vLLM v0.32.0's own `docker/Dockerfile.rocm_base`.
 torch 2.13.0 has no `rocm7.0` build at all, so 7.0 is no longer an option;
 `rocm7.1` carries the same torch/torchvision/torchaudio versions if the host
 kernel driver turns out to be too old for 7.2 userspace:

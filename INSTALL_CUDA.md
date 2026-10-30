@@ -7,12 +7,12 @@ build for CUDA.
 ## Prerequisites
 
 - CUDA toolkit / developer files and a working compiler toolchain.  vLLM
-  v0.28.0 wants C++20, so GCC >= 11.3.  This build targets **CUDA 13.1** and
+  v0.32.0 wants C++20, so GCC >= 11.3.  This build targets **CUDA 13.1** and
   installs the `cu130` PyTorch wheels (`torch==2.13.0`, `torchvision==0.28.0`,
-  `torchaudio==2.11.0`), matching vLLM v0.28.0's own CI lock.
+  `torchaudio==2.11.0`), matching vLLM v0.32.0's own CI lock.
 - uv on your PATH.
-- A Rust toolchain: `tokenizers` is built from source, and `safetensors`,
-  `outlines_core`, and `openai-harmony` are built from their sdists.
+- A Rust toolchain: `safetensors`, `outlines_core`, and `oss-harmony` are built
+  from their sdists.
 - For the optional Triton source build: zlib development files
   (`sudo apt install zlib1g-dev`).  Triton's prebuilt LLVM exports a
   `ZLIB::ZLIB` target, so CMake configuration fails with "the target was not
