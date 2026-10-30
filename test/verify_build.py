@@ -39,7 +39,7 @@ def detect_backend() -> str:
     return "cpu"
 
 
-# Native extensions per backend (v0.28.0).  CUDA gets the stable-libtorch
+# Native extensions per backend (v0.32.0).  CUDA gets the stable-libtorch
 # modules instead of vllm._C; flash-attention is CUDA-only.
 EXTENSIONS = {
     "cuda": (
@@ -100,6 +100,7 @@ NORMAL_PATH = {
     "PIL": True,
     "nvtx": True,
     "xgrammar": True,
+    "tvm_ffi": True,
     "outlines_core": False,
     "openai_harmony": False,
     "triton": False,
@@ -109,6 +110,8 @@ NORMAL_PATH = {
 OMITTED = [
     "flashinfer",
     "fastsafetensors",
+    "instanttensor",
+    "mooncake",
     "cv2",
     "PyNvVideoCodec",
     "tilelang",
@@ -275,13 +278,13 @@ def check_pip() -> None:
         env={**os.environ, "VIRTUAL_ENV": str(venv)},
     )
     out = (r.stdout + r.stderr).strip()
-    # Expected omissions plus the deliberate tokenizers divergence:
-    # transformers caps it at <=0.23.0, we install 0.23.1.
+    # Expected omissions only.
     allowed = re.compile(
-        r"tokenizers|opencv-python-headless|opentelemetry-exporter-otlp|"
-        r"PyNvVideoCodec|torchcodec|flashinfer|tilelang|apache-tvm-ffi|"
+        r"opencv-python-headless|opentelemetry-exporter-otlp|"
+        r"PyNvVideoCodec|torchcodec|flashinfer|tilelang|instanttensor|mooncake|"
         r"nvidia-cudnn-frontend|nvidia-cutlass-dsl|quack-kernels|"
-        r"tokenspeed-mla|humming-kernels|fastsafetensors",
+        r"tokenspeed-mla|humming-kernels|fastsafetensors|setuptools|"
+        r"intel-openmp",
         re.I,
     )
     problems = [
