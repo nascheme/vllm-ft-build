@@ -1,7 +1,7 @@
-From 93a12ff2639db2a33da8d7d80e8b8ae44a9f0d43 Mon Sep 17 00:00:00 2001
+From e546b5935eadb17da7f884bf0cd0336f92df4922 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
-Date: Fri, 28 Aug 2026 01:58:58 +0000
-Subject: [PATCH 2/2] Fall back to native sampler when flashinfer is not
+Date: Fri, 30 Oct 2026 13:39:33 -0700
+Subject: [PATCH 2/3] Fall back to native sampler when flashinfer is not
  installed
 
 requirements/cuda.txt pins flashinfer-python, but this build omits it (no
@@ -14,16 +14,16 @@ set VLLM_USE_FLASHINFER_SAMPLER=1.
 
 Signed-off-by: Neil Schemenauer <nas@arctrix.com>
 ---
- vllm/v1/sample/ops/topk_topp_sampler.py | 23 +++++++++++++----------
- 1 file changed, 13 insertions(+), 10 deletions(-)
+ vllm/v1/sample/ops/topk_topp_sampler.py | 45 +++++++++++++------------
+ 1 file changed, 24 insertions(+), 21 deletions(-)
 
 diff --git a/vllm/v1/sample/ops/topk_topp_sampler.py b/vllm/v1/sample/ops/topk_topp_sampler.py
-index c83ac7c4b..fa9ed36a1 100644
+index daa94ebc3a..a5300e566a 100644
 --- a/vllm/v1/sample/ops/topk_topp_sampler.py
 +++ b/vllm/v1/sample/ops/topk_topp_sampler.py
-@@ -33,8 +33,8 @@ def flashinfer_sampler_supported() -> bool:
-     unsupported. Raises ``RuntimeError`` if the user explicitly opted in
-     via the env var but FlashInfer is unavailable.
+@@ -83,8 +83,8 @@ def flashinfer_sampler_supported() -> bool:
+     JIT-compile for the current GPU/CUDA toolchain. Raises ``RuntimeError`` if
+     the user explicitly opted in via the env var but FlashInfer is unavailable.
  
 -    Assumes flashinfer is installed, as guaranteed by ``requirements/cuda.txt``;
 -    otherwise importing the FlashInfer backend below raises ``ImportError``.
@@ -32,7 +32,7 @@ index c83ac7c4b..fa9ed36a1 100644
  
      Note: callers must additionally ensure ``logprobs_mode`` doesn't require
      post-top-k/top-p logits/logprobs for any request whose logprobs will be
-@@ -48,15 +48,18 @@ def flashinfer_sampler_supported() -> bool:
+@@ -98,27 +98,30 @@ def flashinfer_sampler_supported() -> bool:
              "VLLM_USE_FLASHINFER_SAMPLER=0."
          )
          return False
@@ -45,20 +45,40 @@ index c83ac7c4b..fa9ed36a1 100644
 -        unsupported_reason = (
 -            f"unsupported compute capability {capability.as_version_str()}"
 -        )
+-    elif (
+-        num_sms := current_platform.num_compute_units(
+-            torch.accelerator.current_device_index()
+-        )
+-    ) <= 16:
+-        # FlashInfer 0.7+ rejects multi-CTA top-k masking on <=16 SMs because
+-        # its cross-CTA software barrier cannot guarantee forward progress.
+-        unsupported_reason = (
+-            f"top-k masking requires more than 16 SMs; device has {num_sms}"
+-        )
 +    try:
 +        from vllm.v1.attention.backends.flashinfer import FlashInferBackend
 +    except ImportError:
 +        unsupported_reason = "the 'flashinfer' package is not installed"
-+    else:
+     else:
+-        unsupported_reason = _flashinfer_jit_unsupported_reason(capability)
 +        capability = current_platform.get_device_capability()
 +        assert capability is not None
 +        if not FlashInferBackend.supports_compute_capability(capability):
 +            unsupported_reason = (
 +                f"unsupported compute capability {capability.as_version_str()}"
 +            )
++        elif (
++            num_sms := current_platform.num_compute_units(
++                torch.accelerator.current_device_index()
++            )
++        ) <= 16:
++            # FlashInfer 0.7+ rejects multi-CTA top-k masking on <=16 SMs because
++            # its cross-CTA software barrier cannot guarantee forward progress.
++            unsupported_reason = (
++                f"top-k masking requires more than 16 SMs; device has {num_sms}"
++            )
++        else:
++            unsupported_reason = _flashinfer_jit_unsupported_reason(capability)
  
      if unsupported_reason is None:
          logger.info_once("Using FlashInfer for top-p & top-k sampling.", scope="global")
--- 
-2.43.0
-

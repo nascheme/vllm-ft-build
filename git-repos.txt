@@ -3,20 +3,14 @@
 # built from source; triton is built from source ONLY when Triton support is
 # enabled (BUILD_TRITON=1 / --triton).
 #
-# vllm: v0.28.0 (2026-08-24).  flash-attention: the commit vllm v0.28.0 pins
+# vllm: v0.32.0 (2026-10-17).  flash-attention: the commit vllm v0.32.0 pins
 # in cmake/external_projects/vllm_flash_attn.cmake, so our local source tree
 # matches what vllm would otherwise fetch.
-vllm-project vllm 2cf0a6915ce544dc493a0990f2ea38d81601128a
-vllm-project flash-attention f3e1a4f74c99145c0717709860bf765de1703779
+vllm-project vllm 5df63a7203cdb9328d824a27b682e77c7b9928be
+vllm-project flash-attention 9cd61de38763d712bb6ce56e2a02cc2bf718c89f
 # triton: v3.7.1, the release torch 2.13.0 depends on.  On compute capability
 # 7.5 vllm selects TRITON_ATTN (vllm-flash-attn is sm80+), so the free-threading
 # patches in patches/triton/ are on the critical path, not optional.
 triton-lang triton f797708c0626e5f9840ca5b0a98790e2c7cb09ad
-# tokenizers: v0.23.1, NOT the v0.22.2 in vllm v0.28.0's test lock.  0.22.x
-# builds against PyO3 0.26 with abi3 hardcoded, so the module never declares
-# Py_MOD_GIL_NOT_USED and importing it re-enables the GIL; 0.23.1 is the first
-# stable release on PyO3 0.28.2, which emits the declaration.  transformers
-# 5.15.0 caps tokenizers at <=0.23.0 and no stable 0.23.0 exists, so
-# fixup-env.py relaxes that pin after install.
-huggingface tokenizers 7f1623b90b5adfb9bc327d4c3468d2f70bbce262
-# tiktoken is no longer built from source: 0.12.0+ publishes cp314t wheels.
+# tokenizers and tiktoken are no longer built from source: tokenizers 0.23.3
+# and tiktoken 0.12.0+ publish cp314t wheels.

@@ -1,7 +1,7 @@
-From 6236a4ade7ccd89539f88c935de2a1865f6c2d2f Mon Sep 17 00:00:00 2001
+From 728b66747396dfa43247e518e664f13875e7ab59 Mon Sep 17 00:00:00 2001
 From: Neil Schemenauer <nas@arctrix.com>
 Date: Fri, 28 Aug 2026 01:58:29 +0000
-Subject: [PATCH 1/2] Include device index in compile cache paths
+Subject: [PATCH 1/3] Include device index in compile cache paths
 
 Two engines running in separate threads of one process (the free-threaded
 use case) share a process-wide vLLM cache directory.  Without the device
@@ -21,10 +21,10 @@ Signed-off-by: Neil Schemenauer <nas@arctrix.com>
  4 files changed, 19 insertions(+), 2 deletions(-)
 
 diff --git a/vllm/compilation/backends.py b/vllm/compilation/backends.py
-index 8fbf5b41f..3d7dd4fca 100644
+index 434c1af47e..7063f76bbf 100644
 --- a/vllm/compilation/backends.py
 +++ b/vllm/compilation/backends.py
-@@ -1074,7 +1074,10 @@ class VllmBackend:
+@@ -1081,7 +1081,10 @@ class VllmBackend:
          self.compilation_config.cache_dir = cache_dir
          rank = vllm_config.parallel_config.rank
          dp_rank = vllm_config.parallel_config.data_parallel_index
@@ -37,10 +37,10 @@ index 8fbf5b41f..3d7dd4fca 100644
          self.compilation_config.local_cache_dir = local_cache_dir
  
 diff --git a/vllm/compilation/decorators.py b/vllm/compilation/decorators.py
-index ad710a6fe..9008e8988 100644
+index 3aad32cc24..9b051c721d 100644
 --- a/vllm/compilation/decorators.py
 +++ b/vllm/compilation/decorators.py
-@@ -557,9 +557,12 @@ def _support_torch_compile(
+@@ -579,9 +579,12 @@ def _support_torch_compile(
              # /tmp default during import, making setdefault a no-op.
              os.environ["TORCHINDUCTOR_CACHE_DIR"] = inductor_cache
  
@@ -55,10 +55,10 @@ index ad710a6fe..9008e8988 100644
              if not envs.VLLM_DISABLE_COMPILE_CACHE:
                  loaded_fn = _try_load_aot_compiled_fn(self, aot_compilation_path)
 diff --git a/vllm/platforms/cpu.py b/vllm/platforms/cpu.py
-index 5633e160c..ad264773b 100644
+index 542a7a405d..080ca30242 100644
 --- a/vllm/platforms/cpu.py
 +++ b/vllm/platforms/cpu.py
-@@ -106,6 +106,10 @@ class CpuPlatform(Platform):
+@@ -199,6 +199,10 @@ class CpuPlatform(Platform):
  
          return meminfo.total_memory
  
@@ -68,12 +68,12 @@ index 5633e160c..ad264773b 100644
 +
      @classmethod
      def set_device(cls, device: torch.device) -> None:
-         """
+         """Set the device for the current platform."""
 diff --git a/vllm/platforms/interface.py b/vllm/platforms/interface.py
-index 5c041f163..69da33eb8 100644
+index 3df44a9275..b91a5f20d0 100644
 --- a/vllm/platforms/interface.py
 +++ b/vllm/platforms/interface.py
-@@ -530,6 +530,13 @@ class Platform:
+@@ -625,6 +625,13 @@ class Platform:
          """
          return torch.inference_mode(mode=True)
  
@@ -86,7 +86,4 @@ index 5c041f163..69da33eb8 100644
 +
      @classmethod
      def set_device(cls, device: torch.device) -> None:
-         """
--- 
-2.43.0
-
+         """Set the device for the current platform."""

@@ -1,0 +1,95 @@
+From 8c98fbfe986cc6387162d18070d73253807776d4 Mon Sep 17 00:00:00 2001
+From: Fadi Arafeh <115173828+fadara01@users.noreply.github.com>
+Date: Sat, 17 Oct 2026 05:11:33 +0100
+Subject: [PATCH 3/3] [Bugfix] Remove extra args from CPU's compute slot
+ mapping kernel (#61992)
+
+Signed-off-by: Fadi Arafeh <fadi.arafeh@arm.com>
+Co-authored-by: vllm-agent <claw@inferact.ai>
+(cherry picked from commit 556ac15eb930875693acc5489cf860ac509708a9)
+---
+ .../model_executor/test_triton_dispatcher.py  | 41 +++++++++++++++++++
+ vllm/utils/cpu_triton_utils.py                |  8 +---
+ 2 files changed, 43 insertions(+), 6 deletions(-)
+
+diff --git a/tests/model_executor/test_triton_dispatcher.py b/tests/model_executor/test_triton_dispatcher.py
+index 909230c40f..09faa74a2d 100644
+--- a/tests/model_executor/test_triton_dispatcher.py
++++ b/tests/model_executor/test_triton_dispatcher.py
+@@ -220,3 +220,44 @@ def test_real_triton_kernel_override_end_to_end() -> None:
+         "out_ptr",
+         "BLOCK",
+     )
++
++
++def test_cpu_slot_mapping_override_forwards_kernel_arguments(
++    monkeypatch: pytest.MonkeyPatch,
++) -> None:
++    from vllm.utils import cpu_triton_utils
++    from vllm.v1.worker.block_table import ComputeSlotMappingKernel
++
++    calls: list[tuple[Any, ...]] = []
++    fake_torch = types.SimpleNamespace(
++        ops=types.SimpleNamespace(
++            _C=types.SimpleNamespace(
++                compute_slot_mapping_kernel_impl=lambda *args: calls.append(args)
++            )
++        )
++    )
++    monkeypatch.setattr(cpu_triton_utils, "torch", fake_torch)
++
++    override = KernelOverride(
++        ComputeSlotMappingKernel.kernel,
++        cpu_triton_utils._compute_slot_mapping_kernel_impl,
++    )
++    override[(2,)](
++        num_tokens=2,
++        max_num_tokens=4,
++        query_start_loc_ptr="query_start_loc",
++        positions_ptr="positions",
++        block_table_ptr="block_table",
++        block_table_stride=128,
++        slot_mapping_ptr="slot_mapping",
++        KV_CACHE_BLOCK_SIZE=16,
++        TOTAL_CP_WORLD_SIZE=1,
++        TOTAL_CP_RANK=0,
++        CP_KV_CACHE_INTERLEAVE_SIZE=1,
++        PAD_ID=-1,
++        BLOCK_SIZE=1024,
++    )
++
++    assert calls == [
++        ("query_start_loc", "positions", "block_table", "slot_mapping", 16)
++    ]
+diff --git a/vllm/utils/cpu_triton_utils.py b/vllm/utils/cpu_triton_utils.py
+index d8e4cd389d..3950e4c2ac 100644
+--- a/vllm/utils/cpu_triton_utils.py
++++ b/vllm/utils/cpu_triton_utils.py
+@@ -16,10 +16,8 @@ def _compute_slot_mapping_kernel_impl(
+     positions: torch.Tensor,  # [num_tokens], int64
+     block_table: torch.Tensor,  # [max_num_reqs, max_num_blocks_per_req], int32
+     block_table_stride: int,  # max_num_blocks_per_req
+-    block_size: int,
+     slot_mapping: torch.Tensor,  # [max_num_tokens], int64
+-    KV_CACHE_BLOCK_SIZE: int | None = None,
+-    BLOCKS_PER_KV_BLOCK: int = 1,
++    KV_CACHE_BLOCK_SIZE: int,
+     TOTAL_CP_WORLD_SIZE: int = 1,
+     TOTAL_CP_RANK: int = 0,
+     CP_KV_CACHE_INTERLEAVE_SIZE: int = 1,
+@@ -27,14 +25,12 @@ def _compute_slot_mapping_kernel_impl(
+     BLOCK_SIZE: int = 1024,
+ ) -> None:
+     assert TOTAL_CP_WORLD_SIZE == 1, "Context Parallelism is not supported on CPU."
+-    if BLOCKS_PER_KV_BLOCK != 1:
+-        assert block_size * BLOCKS_PER_KV_BLOCK == KV_CACHE_BLOCK_SIZE
+     torch.ops._C.compute_slot_mapping_kernel_impl(
+         query_start_loc,
+         positions,
+         block_table,
+         slot_mapping,
+-        block_size,
++        KV_CACHE_BLOCK_SIZE,
+     )
+ 
+ 
